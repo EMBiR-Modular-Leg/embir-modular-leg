@@ -294,7 +294,7 @@ void Dynamometer::Run(const std::vector<MoteusInterface::ServoReply>& status,
   // std::cout << "sampled sensors" << std::endl;
   if (!encoder_offset_set) {
     if (status.size() >= 2 && cycle_count_ >= 5) {
-      encoder_offset = status[0].result.position + status[1].result.position;
+      encoder_offset = fmod((status[0].result.position + status[1].result.position), 1.0);
       std::cout << "initial encoder offset = " << encoder_offset << std::endl;
       encoder_offset_set = true;
     }
@@ -774,7 +774,7 @@ bool Dynamometer::safety_check(const std::vector<mjbots::moteus::Pi3HatMoteusInt
     safe &= (reply1.result.fault == 0);
     safe &= (reply2.result.fault == 0);
 
-    float current_encoder_offset = reply1.result.position + reply2.result.position;
+    float current_encoder_offset = fmod((reply1.result.position + reply2.result.position), 1.0);
 
     // latch unsafe if encoder offset changes by more than 0.05 rotations,
     // which represents a rotor slip
