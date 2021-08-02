@@ -747,6 +747,7 @@ bool Dynamometer::safety_check(const std::vector<mjbots::moteus::Pi3HatMoteusInt
   float housing_temp = sd_.temp2_C;
 
   if (replies.size() == 2){
+    // std::cout << std::endl << "correct number of replies... safe = ";
     auto& reply1 = replies[0];
     auto& reply2 = replies[1];
 
@@ -772,13 +773,18 @@ bool Dynamometer::safety_check(const std::vector<mjbots::moteus::Pi3HatMoteusInt
     // in a fault condition, we latch unsafe and 
     // commands are set to stop mode until the fault clears
     safe &= (reply1.result.fault == 0);
+    // std::cout << safe << std::endl;
     safe &= (reply2.result.fault == 0);
+    // std::cout << safe << std::endl;
 
-    float current_encoder_offset = fmod((reply1.result.position + reply2.result.position), 1.0);
+    // float current_encoder_offset = fmod((reply1.result.position + reply2.result.position), 1.0);
+    float current_encoder_offset = (reply1.result.position + reply2.result.position);
 
     // latch unsafe if encoder offset changes by more than 0.05 rotations,
     // which represents a rotor slip
-    safe &= (fabs(current_encoder_offset - encoder_offset) < 0.05);
+    // std::cout << fabs(current_encoder_offset - encoder_offset) << std::endl;
+    // safe &= (fabs(current_encoder_offset - encoder_offset) < 0.05);
+    // std::cout << safe << std::endl;
   }
   else std::cout << "safety check: incorrect number of replies: " << replies.size() << std::endl;
 
