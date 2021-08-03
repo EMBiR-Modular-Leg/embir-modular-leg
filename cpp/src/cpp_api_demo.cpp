@@ -352,8 +352,11 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
 
     // **** MANIPULATE COMMANDS HERE FOR OPERATION ****
     // dynamometer->Run(saved_replies, &commands);
-    a1.make_stop();
-    a2.make_stop();
+    // a1.make_stop();
+    // a2.make_stop();
+
+    a1.make_act_velocity(1.0*std::sin(t_prog_s), 0);
+    a2.make_act_velocity(1.0*std::sin(t_prog_s), 0);
 
     // commands vector is memory linked to moteus_data
     commands[0] = a1.get_curr_cmd();

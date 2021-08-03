@@ -31,8 +31,8 @@ public:
 private:
 	float gear_ratio_ = 1;
 	float trq_efficiency_ = 1;
-	float kp_;
-	float kd_;
+	float kp_ = 1;
+	float kd_ = 1;
 };
 
 #endif
