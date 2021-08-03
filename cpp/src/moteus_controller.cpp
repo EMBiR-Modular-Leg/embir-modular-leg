@@ -56,6 +56,18 @@ void MoteusController::restore_cal(std::string path) {
 	std::cout << "    done. " << std::endl;
 }
 
+void MoteusController::restore_cfg(std::string path) {
+	std::string id_str = std::to_string(id_);
+	std::string bus_str = std::to_string(bus_);
+	std::string command = "python3 -m moteus.moteus_tool --target " +
+		id_str + " --pi3hat-cfg '" + bus_str + "=" + id_str +
+		"' --write-config " + path;
+	std::cout << "restoring config to id " << id_str << "from " <<
+		path << "...\n" << command;
+	system(command.c_str());
+	std::cout << "    done. " << std::endl;
+}
+
 void MoteusController::zero_offset() {
 	std::string id_str = std::to_string(id_);
 	std::string bus_str = std::to_string(bus_);
@@ -77,6 +89,7 @@ void MoteusController::make_stop() {
 
 void MoteusController::make_mot_position(float pos_rot, float kps,
 	float kds, float ff_trq_Nm) {
+	if (fault() != errc::kSuccess) {make_stop(); return;}
 	curr_cmd_.id = id_;
 	curr_cmd_.mode = moteus::Mode::kPosition;
 	curr_cmd_.position.kp_scale = kps;
@@ -88,6 +101,7 @@ void MoteusController::make_mot_position(float pos_rot, float kps,
 
 void MoteusController::make_mot_velocity(float vel_Hz, float kps,
 	float kds, float ff_trq_Nm) {
+	if (fault() != errc::kSuccess) {make_stop(); return;}
 	curr_cmd_.id = id_;
 	curr_cmd_.mode = moteus::Mode::kPosition;
 	curr_cmd_.position.kp_scale = kps;
@@ -98,6 +112,7 @@ void MoteusController::make_mot_velocity(float vel_Hz, float kps,
 }
 
 void MoteusController::make_mot_torque(float trq_Nm) {
+	if (fault() != errc::kSuccess) {make_stop(); return;}
 	curr_cmd_.id = id_;
 	curr_cmd_.mode = moteus::Mode::kPosition;
 	curr_cmd_.position.kp_scale = 0;
@@ -111,10 +126,15 @@ void MoteusController::retrieve_reply(std::vector<MoteusInterface::ServoReply> r
 	for (auto reply : replies) {
 		if (reply.id == id_) {
 			prev_reply_ = reply;
+			mode_ = prev_reply_.result.mode;
+			fault_code_ = (errc)prev_reply_.result.fault;
+			if (fault_code_ == errc::kSuccess && outside_limit()) fault_code_ = errc::kOutsideLimit;
 			return;
 		}
 	}
 	prev_reply_ = {};
+	mode_ = mjbots::moteus::Mode::kFault;
+	fault_code_ = errc::kMissingReply;
 	return;
 }
 

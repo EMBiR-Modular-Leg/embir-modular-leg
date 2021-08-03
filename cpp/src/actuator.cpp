@@ -11,16 +11,16 @@ std::string Actuator::stringify_actuator() {
   std::ostringstream result;
   auto& cmd_data = curr_cmd_.position;
   sprintf(cstr_buffer, "% -f,% -f,% -f,",
-    cmd_data.position*2*PI/gear_ratio_,
-    cmd_data.velocity*2*PI/gear_ratio_,
-    cmd_data.feedforward_torque*gear_ratio_);
+    cmd_data.position*2*PI,
+    cmd_data.velocity*2*PI,
+    cmd_data.feedforward_torque);
   result << cstr_buffer;
 
   auto& reply_data = prev_reply_.result;
   sprintf(cstr_buffer, "% -f,% -f,% -f",
-    reply_data.position*2*PI/gear_ratio_,
-    reply_data.velocity*2*PI/gear_ratio_,
-    reply_data.torque*gear_ratio_);
+    reply_data.position*2*PI,
+    reply_data.velocity*2*PI,
+    reply_data.torque);
   result << cstr_buffer;
   return result.str();
 }

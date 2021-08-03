@@ -12,18 +12,18 @@ public:
 	inline void set_gear_ratio(float new_ratio) {gear_ratio_ = new_ratio;}
 	inline void make_act_position(float pos_rad, float ff_trq_Nm) {
 		make_mot_position(
-			pos_rad*gear_ratio_/(2*PI),
+			pos_rad/(2*PI),
 			kp_, kd_,
-			ff_trq_Nm/(gear_ratio_*trq_efficiency_));
+			ff_trq_Nm/(trq_efficiency_));
 	}
 	inline void make_act_velocity(float vel_rad_s, float ff_trq_Nm) {
 		make_mot_velocity(
-			vel_rad_s*gear_ratio_/(2*PI),
+			vel_rad_s/(2*PI),
 			kp_, kd_,
-			ff_trq_Nm/(gear_ratio_*trq_efficiency_));
+			ff_trq_Nm/(trq_efficiency_));
 	}
 	inline void make_act_torque(float trq_Nm) {
-		make_mot_torque(trq_Nm/(gear_ratio_*trq_efficiency_));
+		make_mot_torque(trq_Nm/(trq_efficiency_));
 	}
 
 	std::string stringify_actuator();
