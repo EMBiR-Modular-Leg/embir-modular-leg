@@ -292,10 +292,12 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
     << a1.stringify_moteus_reply_header() << ","
     << a2.stringify_actuator_header() << ","
     << a2.stringify_moteus_reply_header() << ","
-    << "actuator_a_id";
+    << "actuator_a_id\n";
+
+  float t_prog_s = 0;
 
   // * MAIN LOOP *
-  while (!interrupted) {
+  while (!interrupted && t_prog_s < demoset.duration_s) {
     cycle_count++;
     margin_cycles++;
     // std::cout << "loop" << std::endl;
@@ -310,7 +312,7 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
         // data_file.flush();
 
         // dynamometer->print_status_update();
-        std::cout << "here " << cycle_count << std::endl;
+        std::cout << "here " << cycle_count << " " << t_prog_s << std::endl;
       }
 
       int skip_count = 0;
@@ -348,7 +350,14 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
     }
     next_cycle += period;
 
+    // **** MANIPULATE COMMANDS HERE FOR OPERATION ****
     // dynamometer->Run(saved_replies, &commands);
+    a1.make_stop();
+    a2.make_stop();
+
+    // commands vector is memory linked to moteus_data
+    commands[0] = a1.get_curr_cmd();
+    commands[1] = a2.get_curr_cmd();
 
     if (can_result.valid()) {
       // Now we get the result of our last query and send off our new
@@ -360,6 +369,8 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
       std::copy(replies.begin(), replies.begin() + rx_count,
                 saved_replies.begin());
     }
+    a1.retrieve_reply(saved_replies);
+    a2.retrieve_reply(saved_replies);
 
     // Then we can immediately ask them to be used again.
     auto promise = std::make_shared<std::promise<MoteusInterface::Output>>();
@@ -375,13 +386,9 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
 
     if (cycle_count > 5 && saved_replies.size() >= 2) {
       reply_miss_count = 0;
-      uint8_t cmd1_idx = (saved_commands.at(0).id == 1) ? 0 : 1;
-      uint8_t cmd2_idx = (cmd1_idx == 0) ? 1 : 0;
-      uint8_t rpl1_idx = (saved_replies.at(0).id == 1) ? 0 : 1;
-      uint8_t rpl2_idx = (rpl1_idx == 0) ? 1 : 0;
 
       auto time_span = std::chrono::steady_clock::now() - t0;
-      float t_prog_s = double(time_span.count()) * std::chrono::steady_clock::period::num / 
+      t_prog_s = double(time_span.count()) * std::chrono::steady_clock::period::num / 
             std::chrono::steady_clock::period::den;
 
       data_file << std::setw(10) << std::setprecision(4) << std::fixed
@@ -392,6 +399,7 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
         a2_str = a2.stringify_actuator();
         data_file << a1_str << "," << c1_str << ","
           << a2_str << "," << c2_str << "," << 1;
+      data_file << "\n";
       data_file.flush();
     }
     else if (cycle_count > 5 && saved_replies.size() < 2) {
@@ -456,9 +464,9 @@ int main(int argc, char** argv) {
 
   // for convenience
   auto demoset = parse_settings(opts);
-
+  demoset.status_period_us = static_cast<int64_t>(
+    (1e6)/10);
   data_file << "# \n# user comment: " << opts["comment"].as<std::string>() << "\n# \n";
-  data_file << "# test mode: " << opts["test-mode"].as<std::string>() << "\n";
   data_file << "# period s: " << 1.0/opts["frequency"].as<float>() << "\n";
   data_file << "# duration s: " << opts["duration"].as<float>() << "\n";
   data_file << "# gear 1: " << opts["gear1"].as<float>() << "\n";
