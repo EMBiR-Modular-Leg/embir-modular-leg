@@ -14,6 +14,7 @@ public:
 	inline void set_id(id_t new_id) {id_ = new_id;}
 
 	void restore_cal(std::string path);
+	void zero_offset();
 
 	void make_stop();
 	void make_mot_position(float pos_rot, float kps=1, float kds=1,

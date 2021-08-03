@@ -56,6 +56,17 @@ void MoteusController::restore_cal(std::string path) {
 	std::cout << "    done. " << std::endl;
 }
 
+void MoteusController::zero_offset() {
+	std::string id_str = std::to_string(id_);
+	std::string bus_str = std::to_string(bus_);
+	std::string command = "python3 -m moteus.moteus_tool --target " +
+		id_str + " --pi3hat-cfg '" + bus_str + "=" + id_str +
+		"' --zero-offset";
+	std::cout << "setting current position as zero...\n" << command;
+	system(command.c_str());
+	std::cout << "    done. " << std::endl;
+}
+
 void MoteusController::make_stop() {
 	curr_cmd_.id = id_;
 	curr_cmd_.mode = moteus::Mode::kStopped;

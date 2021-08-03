@@ -360,6 +360,8 @@ void Run(std::ofstream& data_file, DemoSettings& demoset, Actuator& a1,         
     // a2.make_act_velocity(1.0*std::sin(t_prog_s), 0);
     a2.make_act_position(1.0*std::sin(t_prog_s), 0);
 
+    // TODO: make FSM
+
     // commands vector is memory linked to moteus_data
     commands[0] = a1.get_curr_cmd();
     commands[1] = a2.get_curr_cmd();
@@ -494,6 +496,9 @@ int main(int argc, char** argv) {
     demoset.gear1, 1.0);
   Actuator a2(demoset.actuator_2_id, demoset.actuator_2_bus,
     demoset.gear2, 1.0);
+
+  a1.zero_offset();
+  a2.zero_offset();
 
   // return 0;
   Run(data_file, demoset, a1, a2);
