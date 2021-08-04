@@ -13,6 +13,8 @@ Leg::Leg(LegSettings& legset, std::ostream& datastream) :
 	
 	act_femur_.zero_offset();
   act_tibia_.zero_offset();
+	act_femur_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a1.cfg");
+	act_tibia_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a2.cfg");
 }
 
 void Leg::iterate_fsm() {
@@ -42,8 +44,12 @@ void Leg::iterate_fsm() {
 		case FSMState::kRunning: {
 			// ***TODO***: Implement your operation here
 			// feel free to expand into multiple states
-			act_femur_.make_stop();
-			act_tibia_.make_stop();
+			// act_femur_.make_stop();
+			// act_tibia_.make_stop();
+			// act_femur_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
+			act_femur_.make_act_position(0.8*std::sin(time_fcn_s_), 0);
+			// act_tibia_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
+			act_tibia_.make_act_position(0.8*std::sin(time_fcn_s_), 0);
 			break;}
 		case FSMState::kRecovery: {
 			// if coming from non-recovery, store the state so we can go back

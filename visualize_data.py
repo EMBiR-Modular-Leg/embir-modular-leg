@@ -157,14 +157,16 @@ def main() :
                         return
                     sidx = int(sstr)
                     label = headers[sidx]
-                    series = data[label] if not filt_s else butter_lowpass_filter(data[label], cutoff, fs, order)
+                    series = data[label].astype(float) if not filt_s else butter_lowpass_filter(data[label].astype(float), cutoff, fs, order)
                     
                     ratio = 1
                     if label.find("torque") > -1 and (label.find("c1") > -1 or label.find("c2") > -1):
                         ratio = gear_ratio
                     if filt_s: label += ", filtered"
                     if scatter: ax.scatter(xseries, ratio*series, label=label, s=1)
-                    else: ax.plot(xseries, ratio*series, label=label)
+                    else: 
+                        # import ipdb; ipdb.set_trace()
+                        ax.plot(np.array(xseries), ratio*np.array(series), label=label)
                 if filt_x: xlabel += ", filtered"
                 plt.xlabel(xlabel)
                 plt.legend()
