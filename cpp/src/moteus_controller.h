@@ -53,7 +53,7 @@ public:
 	void make_mot_torque(float trq_Nm);
 	
 	void retrieve_reply(
-		std::vector<mjbots::moteus::Pi3HatMoteusInterface::ServoReply> replies);
+		std::vector<mjbots::moteus::Pi3HatMoteusInterface::ServoReply>& replies);
 
 	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand*
 		get_curr_cmd() {
@@ -107,7 +107,7 @@ protected:
 
 	mjbots::moteus::PositionResolution res;
 
-	errc fault_code_;
+	errc fault_code_ = errc::kSuccess;
 
 	float pos_lower_bound_rot_ = -1;
 	float pos_upper_bound_rot_ = 1;

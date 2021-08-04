@@ -184,10 +184,15 @@ void Run(Leg& leg) {
 
     // kill loop if we miss all these replies
     if (reply_miss_count > 20) {
-      std::cout << "missed too many replies! ending..." << std::endl; break;
+      std::cout << "missed too many replies in a row! ending..." << std::endl; break;
     }
 
-    if (cycle_count > 1) std::copy(curr_commands.begin(), curr_commands.end(), prev_commands.begin());
+    if (cycle_count > 1) {
+      // std::copy(curr_commands.begin(), curr_commands.end(), prev_commands.begin());
+      for (size_t ii = 0; ii < curr_commands.size(); ii++)  {
+        prev_commands[ii] = curr_commands[ii];
+      }
+    }
     // dynamometer->safety_check(saved_replies);
   }
   // IF INTERRUPTED

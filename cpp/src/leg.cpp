@@ -18,8 +18,10 @@ Leg::Leg(LegSettings& legset, std::ostream& datastream) :
 void Leg::iterate_fsm() {
 	cycles_++;
 	// immediately respond to fault condition
-	if (bool(act_femur_.fault()) || bool(act_tibia_.fault())) next_state_ = 
+	if (leg_fault()) next_state_ = 
 		FSMState::kRecovery;
+
+	curr_state_ = next_state_;
 
 	auto time_span = chron::steady_clock::now() - time0_s_;
 	time_prog_s_ = double(time_span.count()) * chron::steady_clock::period::num / 
@@ -28,18 +30,27 @@ void Leg::iterate_fsm() {
 		time_prog_old_s_;
   time_prog_old_s_ = time_prog_s_;
 
+	// state logic for simple test:
+	if (((int)time_prog_s_)%2) next_state_ = FSMState::kIdle;
+	else next_state_ = FSMState::kRunning;
+
 	switch (curr_state_) {
-		case FSMState::kIdle:
+		case FSMState::kIdle: {
 			act_femur_.make_stop();
 			act_tibia_.make_stop();
-			break;
-		case FSMState::kRunning:
+			break;}
+		case FSMState::kRunning: {
 			// ***TODO***: Implement your operation here
 			// feel free to expand into multiple states
 			act_femur_.make_stop();
 			act_tibia_.make_stop();
-			break;
-		case FSMState::kRecovery:
+			break;}
+		case FSMState::kRecovery: {
+			// if coming from non-recovery, store the state so we can go back
+			if(prev_state_ != FSMState::kRecovery) {
+				recovery_return_state_ = prev_state_;
+				recovery_cycle = 0;
+			}
 			act_femur_.make_stop();
 			act_tibia_.make_stop();
 			recovery_cycle++;
@@ -47,24 +58,25 @@ void Leg::iterate_fsm() {
 			if(recovery_cycle < recovery_cycle_thresh) break;
 
 			// if recovery hasn't occurred, quit
-			if(bool(act_femur_.fault()) || bool(act_tibia_.fault())) next_state_ =
+			if(leg_fault()) next_state_ =
 				FSMState::kQuitting;
 			
 			// else, recovery has occurred, and we go back to running
-			else next_state_ = FSMState::kRunning;
-			break;
-		case FSMState::kQuitting:
+			else next_state_ = recovery_return_state_;
+			break;}
+		case FSMState::kQuitting: {
 			act_femur_.make_stop();
 			act_tibia_.make_stop();
 			quit_cycle++;
 			// wait at least a few cycles, then raise flag (main will have to quit)
 			if(quit_cycle > quit_cycle_thresh) ready_to_quit = true;
-			break;
+			break;}
 		
-		default:
-			break;
+		default: {
+			next_state_ = curr_state_;
+			break;}
 	}
-
+	prev_state_ = curr_state_;
 	log_data();
 	return;
 }
@@ -75,7 +87,8 @@ void Leg::log_data() {
     << act_femur_.stringify_actuator() << ","
 		<< act_femur_.stringify_moteus_reply() << ","
     << act_tibia_.stringify_actuator() << ","
-    << act_tibia_.stringify_moteus_reply() << "\n";
+    << act_tibia_.stringify_moteus_reply() << ","
+		<< (int)curr_state_ << "\n";
 	
 	return;
 }
@@ -85,7 +98,8 @@ void Leg::log_headers() {
     << act_femur_.stringify_actuator_header() << ","
 		<< act_femur_.stringify_moteus_reply_header() << ","
     << act_tibia_.stringify_actuator_header() << ","
-    << act_tibia_.stringify_moteus_reply_header() << "\n";
+    << act_tibia_.stringify_moteus_reply_header() << ","
+		<< "leg fsm state\n";
 	
 	return;
 }

@@ -116,7 +116,8 @@ void MoteusController::make_mot_torque(float trq_Nm) {
 	curr_cmd_ptr_->position.feedforward_torque = trq_Nm;
 }
 
-void MoteusController::retrieve_reply(std::vector<MoteusInterface::ServoReply> replies) {
+void MoteusController::retrieve_reply(std::vector<MoteusInterface::ServoReply>& replies) {
+	if(replies.size() < 2) std::cout << "incorrect number of replies: " << replies.size() << std::endl;
 	for (auto reply : replies) {
 		if (reply.id == id_) {
 			prev_reply_ = reply;
@@ -139,7 +140,7 @@ std::string MoteusController::stringify_moteus_reply() {
     data.mode, data.position, data.velocity);
   result << cstr_buffer;
   sprintf(cstr_buffer, "% -f,% -f,%2d",
-    data.torque, data.temperature, data.fault);
+    data.torque, data.temperature, (int)fault_code_);
   result << cstr_buffer;
   return result.str();
 }

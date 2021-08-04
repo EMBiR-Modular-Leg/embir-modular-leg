@@ -92,8 +92,11 @@ private:
 
 	LegSettings legset_;
 
+	FSMState prev_state_ = FSMState::kIdle;
 	FSMState curr_state_ = FSMState::kIdle;
 	FSMState next_state_ = FSMState::kIdle;
+
+	FSMState recovery_return_state_ = FSMState::kIdle;
 
   std::chrono::steady_clock::time_point time0_s_;
 	float time_prog_s_ = 0;
