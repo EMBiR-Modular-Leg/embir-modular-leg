@@ -85,8 +85,6 @@ int Run(Leg& leg) {
   std::vector<MoteusInterface::ServoReply> saved_replies;
 
   // ** INITIALIZE COMMANDS **
-  // curr_commands[0] = a1.get_curr_cmd();
-  // curr_commands[1] = a2.get_curr_cmd();
 
   // ** PACKAGE COMMANDS AND REPLIES IN moteus_data **
   MoteusInterface::Data moteus_data;
@@ -271,12 +269,7 @@ int main(int argc, char** argv) {
   ConfigureRealtime(legset.main_cpu);
   ConfigureRealtime(legset.can_cpu);
 
-  Actuator act_femur(legset.act_femur_id, legset.act_femur_bus,
-    legset.gear1, 1.0);
-  Actuator act_tibia(legset.act_tibia_id, legset.act_tibia_bus,
-    legset.gear2, 1.0);
-
-	Leg leg(act_femur, act_tibia, data_file, legset);
+	Leg leg(legset, data_file);
 
   // return 0;
   int exit_status = Run(leg);

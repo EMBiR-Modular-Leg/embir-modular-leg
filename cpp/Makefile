@@ -13,15 +13,18 @@ VPATH = src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir\
 SRC_DIR := ./src
 BUILD_DIR := ./build
 BIN_DIR := ./bin
-COMMON_OBJS := Adafruit_ADS1X15.o Adafruit_INA260.o I2CDevice.o filters.o iir.o
+COMMON_OBJS := Adafruit_ADS1X15.o Adafruit_INA260.o I2CDevice.o filters.o \
+	iir.o utils.o
 ADS_OBJS := ads_test.o $(COMMON_OBJS)
 PI3T_OBJS := pi3hat_tool.o pi3hat.o $(COMMON_OBJS)
 DYNAMOMETER_OBJS := dynamometer_main.o dynamometer.o pi3hat.o $(COMMON_OBJS)
 M_CTRL_OBJS := moteus_control_example.o pi3hat.o $(COMMON_OBJS)
-CPP_API_DEMO_OBJS := cpp_api_demo.o actuator.o moteus_controller.o pi3hat.o\
+CPP_API_DEMO_OBJS := cpp_api_demo.o actuator.o moteus_controller.o pi3hat.o \
+	$(COMMON_OBJS)
+LEG_OBJS := leg_main.o leg.o pi3hat.o actuator.o moteus_controller.o \
 	$(COMMON_OBJS)
 
-BINS := ads_test pi3hat_tool dynamometer cpp_api_demo
+BINS := ads_test pi3hat_tool dynamometer cpp_api_demo leg
 
 SYS_LIB_DIRS := /opt/vc/
 SYS_INCLUDES := $(foreach lib,$(SYS_LIB_DIRS),$(addsuffix include,$(lib)))
@@ -55,6 +58,12 @@ $(BIN_DIR)/moteus_control_example : $(foreach obj,$(M_CTRL_OBJS),$(addprefix \
 	-lpthread
 
 $(BIN_DIR)/cpp_api_demo : $(foreach obj,$(CPP_API_DEMO_OBJS),$(addprefix \
+$(BUILD_DIR)/,$(obj))) 
+	@echo "$@"
+	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/mjbots/pi3hat \
+	-I src/iir -lbcm_host -lbcm2835 -lpthread
+
+$(BIN_DIR)/leg : $(foreach obj,$(LEG_OBJS),$(addprefix \
 $(BUILD_DIR)/,$(obj))) 
 	@echo "$@"
 	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/mjbots/pi3hat \

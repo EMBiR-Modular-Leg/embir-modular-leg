@@ -21,9 +21,9 @@ using namespace mjbots;
 using MoteusInterface = moteus::Pi3HatMoteusInterface;
 
 MoteusController::MoteusController(id_t id, uint8_t bus) : 
-	id_(id), bus_(bus), curr_cmd_({}), prev_cmd_({}) {
+	id_(id), bus_(bus) {
 	
-	moteus::PositionResolution res;
+	// set up resolutions
   res.position = moteus::Resolution::kFloat;
   res.velocity = moteus::Resolution::kFloat;
   res.feedforward_torque = moteus::Resolution::kFloat;
@@ -32,16 +32,6 @@ MoteusController::MoteusController(id_t id, uint8_t bus) :
   res.maximum_torque = moteus::Resolution::kIgnore;
   res.stop_position = moteus::Resolution::kIgnore;
   res.watchdog_timeout = moteus::Resolution::kIgnore;
-  
-	curr_cmd_.resolution = res;
-	curr_cmd_.query.velocity = moteus::Resolution::kFloat;
-	curr_cmd_.query.position = moteus::Resolution::kFloat;
-	curr_cmd_.query.torque = moteus::Resolution::kFloat;
-
-	prev_cmd_.resolution = res;
-	prev_cmd_.query.velocity = moteus::Resolution::kFloat;
-	prev_cmd_.query.position = moteus::Resolution::kFloat;
-	prev_cmd_.query.torque = moteus::Resolution::kFloat;
 }
 
 void MoteusController::restore_cal(std::string path) {
@@ -80,46 +70,50 @@ void MoteusController::zero_offset() {
 }
 
 void MoteusController::make_stop() {
-	curr_cmd_.id = id_;
-	curr_cmd_.mode = moteus::Mode::kStopped;
-	curr_cmd_.position.feedforward_torque = 0;
-	curr_cmd_.position.kp_scale = 0;
-	curr_cmd_.position.kd_scale = 0;
+	if(!curr_cmd_shared) {fault_code_ = errc::kUninitialized; return;}
+	curr_cmd_ptr_->id = id_;
+	curr_cmd_ptr_->mode = moteus::Mode::kStopped;
+	curr_cmd_ptr_->position.feedforward_torque = 0;
+	curr_cmd_ptr_->position.kp_scale = 0;
+	curr_cmd_ptr_->position.kd_scale = 0;
 }
 
 void MoteusController::make_mot_position(float pos_rot, float kps,
 	float kds, float ff_trq_Nm) {
+	if(!curr_cmd_shared) {fault_code_ = errc::kUninitialized; return;}
 	if (fault() != errc::kSuccess) {make_stop(); return;}
-	curr_cmd_.id = id_;
-	curr_cmd_.mode = moteus::Mode::kPosition;
-	curr_cmd_.position.kp_scale = kps;
-	curr_cmd_.position.kd_scale = kds;
-	curr_cmd_.position.position = pos_rot;
-	curr_cmd_.position.velocity = 0;
-	curr_cmd_.position.feedforward_torque = ff_trq_Nm;
+	curr_cmd_ptr_->id = id_;
+	curr_cmd_ptr_->mode = moteus::Mode::kPosition;
+	curr_cmd_ptr_->position.kp_scale = kps;
+	curr_cmd_ptr_->position.kd_scale = kds;
+	curr_cmd_ptr_->position.position = pos_rot;
+	curr_cmd_ptr_->position.velocity = 0;
+	curr_cmd_ptr_->position.feedforward_torque = ff_trq_Nm;
 }
 
 void MoteusController::make_mot_velocity(float vel_Hz, float kps,
 	float kds, float ff_trq_Nm) {
+	if(!curr_cmd_shared) {fault_code_ = errc::kUninitialized; return;}
 	if (fault() != errc::kSuccess) {make_stop(); return;}
-	curr_cmd_.id = id_;
-	curr_cmd_.mode = moteus::Mode::kPosition;
-	curr_cmd_.position.kp_scale = kps;
-	curr_cmd_.position.kd_scale = kds;
-	curr_cmd_.position.position = std::numeric_limits<double>::quiet_NaN();
-	curr_cmd_.position.velocity = vel_Hz;
-	curr_cmd_.position.feedforward_torque = ff_trq_Nm;
+	curr_cmd_ptr_->id = id_;
+	curr_cmd_ptr_->mode = moteus::Mode::kPosition;
+	curr_cmd_ptr_->position.kp_scale = kps;
+	curr_cmd_ptr_->position.kd_scale = kds;
+	curr_cmd_ptr_->position.position = std::numeric_limits<double>::quiet_NaN();
+	curr_cmd_ptr_->position.velocity = vel_Hz;
+	curr_cmd_ptr_->position.feedforward_torque = ff_trq_Nm;
 }
 
 void MoteusController::make_mot_torque(float trq_Nm) {
+	if(!curr_cmd_shared) {fault_code_ = errc::kUninitialized; return;}
 	if (fault() != errc::kSuccess) {make_stop(); return;}
-	curr_cmd_.id = id_;
-	curr_cmd_.mode = moteus::Mode::kPosition;
-	curr_cmd_.position.kp_scale = 0;
-	curr_cmd_.position.kd_scale = 0;
-	curr_cmd_.position.position = std::numeric_limits<double>::quiet_NaN();
-	curr_cmd_.position.velocity = 0;
-	curr_cmd_.position.feedforward_torque = trq_Nm;
+	curr_cmd_ptr_->id = id_;
+	curr_cmd_ptr_->mode = moteus::Mode::kPosition;
+	curr_cmd_ptr_->position.kp_scale = 0;
+	curr_cmd_ptr_->position.kd_scale = 0;
+	curr_cmd_ptr_->position.position = std::numeric_limits<double>::quiet_NaN();
+	curr_cmd_ptr_->position.velocity = 0;
+	curr_cmd_ptr_->position.feedforward_torque = trq_Nm;
 }
 
 void MoteusController::retrieve_reply(std::vector<MoteusInterface::ServoReply> replies) {

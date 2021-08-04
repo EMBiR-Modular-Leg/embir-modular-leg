@@ -1,3 +1,6 @@
+#ifndef COLOR_H
+#define COLOR_H
+
 #include <ostream>
 
 namespace Color {
@@ -45,3 +48,5 @@ namespace CMod {
   Color::Modifier bg_wht(Color::BG_WHITE);
   Color::Modifier bg_def(Color::BG_DEFAULT);
 }
+
+#endif

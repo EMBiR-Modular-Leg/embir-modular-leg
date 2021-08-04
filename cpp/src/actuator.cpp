@@ -9,7 +9,7 @@ Actuator::Actuator(id_t id, uint8_t bus, float gear_ratio, float trq_efficiency)
 
 std::string Actuator::stringify_actuator() {
   std::ostringstream result;
-  auto& cmd_data = curr_cmd_.position;
+  auto& cmd_data = curr_cmd_ptr_->position;
   sprintf(cstr_buffer, "% -f,% -f,% -f,",
     cmd_data.position*2*PI,
     cmd_data.velocity*2*PI,
