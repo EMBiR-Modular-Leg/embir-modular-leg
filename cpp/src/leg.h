@@ -59,16 +59,23 @@ public:
 	inline void set_time0(std::chrono::steady_clock::time_point t0) {time0_s_ = t0;}
 	inline float get_time_prog() {return time_prog_s_;}
 
-	inline void share_commands(std::vector<
-		mjbots::moteus::Pi3HatMoteusInterface::ServoCommand>& curr_commands,
-		std::vector<
-		mjbots::moteus::Pi3HatMoteusInterface::ServoCommand>& prev_commands) {
-		act_femur_.share_curr_cmd(curr_commands[0]);
-		act_tibia_.share_curr_cmd(curr_commands[1]);
-		act_femur_.share_prev_cmd(prev_commands[0]);
-		act_tibia_.share_prev_cmd(prev_commands[1]);
-	}
+	// inline void share_commands(std::vector<
+	// 	mjbots::moteus::Pi3HatMoteusInterface::ServoCommand>& curr_commands,
+	// 	std::vector<
+	// 	mjbots::moteus::Pi3HatMoteusInterface::ServoCommand>& prev_commands) {
+	// 	act_femur_.share_curr_cmd(curr_commands[0]);
+	// 	act_tibia_.share_curr_cmd(curr_commands[1]);
+	// 	act_femur_.share_prev_cmd(prev_commands[0]);
+	// 	act_tibia_.share_prev_cmd(prev_commands[1]);
+	// }
 
+	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand get_femur_cmd() {
+		return act_femur_.get_curr_cmd();
+	}
+	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand get_tibia_cmd() {
+		return act_tibia_.get_curr_cmd();
+	}
+	
 	inline void retrieve_replies(std::vector<
 		mjbots::moteus::Pi3HatMoteusInterface::ServoReply>& prev_replies) {
 		act_femur_.retrieve_reply(prev_replies);

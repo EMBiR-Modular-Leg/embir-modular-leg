@@ -55,31 +55,28 @@ public:
 	void retrieve_reply(
 		std::vector<mjbots::moteus::Pi3HatMoteusInterface::ServoReply>& replies);
 
-	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand*
+	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand
 		get_curr_cmd() {
-		return curr_cmd_ptr_;
+		return curr_cmd_;
 	}
 	inline void share_curr_cmd(
 		mjbots::moteus::Pi3HatMoteusInterface::ServoCommand& command) {
-		curr_cmd_ptr_ = &command;
-		curr_cmd_ptr_->resolution = res;
-		curr_cmd_ptr_->query.velocity = mjbots::moteus::Resolution::kFloat;
-		curr_cmd_ptr_->query.position = mjbots::moteus::Resolution::kFloat;
-		curr_cmd_ptr_->query.torque = mjbots::moteus::Resolution::kFloat;
-		curr_cmd_shared = true;
+		curr_cmd_ = command;
+		curr_cmd_.resolution = res;
+		curr_cmd_.query.velocity = mjbots::moteus::Resolution::kFloat;
+		curr_cmd_.query.position = mjbots::moteus::Resolution::kFloat;
+		curr_cmd_.query.torque = mjbots::moteus::Resolution::kFloat;
 	}
 	inline void share_prev_cmd(
 		mjbots::moteus::Pi3HatMoteusInterface::ServoCommand& command) {
-		prev_cmd_ptr_ = &command;
-		prev_cmd_ptr_->resolution = res;
-		prev_cmd_ptr_->query.velocity = mjbots::moteus::Resolution::kFloat;
-		prev_cmd_ptr_->query.position = mjbots::moteus::Resolution::kFloat;
-		prev_cmd_ptr_->query.torque = mjbots::moteus::Resolution::kFloat;
-		prev_cmd_shared = true;
+		prev_cmd_ = command;
+		prev_cmd_.resolution = res;
+		prev_cmd_.query.velocity = mjbots::moteus::Resolution::kFloat;
+		prev_cmd_.query.position = mjbots::moteus::Resolution::kFloat;
+		prev_cmd_.query.torque = mjbots::moteus::Resolution::kFloat;
 	}
-	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand* 
-		get_prev_cmd() {
-		return prev_cmd_ptr_;
+	inline mjbots::moteus::Pi3HatMoteusInterface::ServoCommand get_prev_cmd() {
+		return prev_cmd_;
 	}
 	inline mjbots::moteus::Mode get_mode() {return mode_;}
 	inline errc fault() {return fault_code_;}
@@ -96,10 +93,8 @@ protected:
 	uint8_t bus_;
 	// this class only holds pointers to the command data; true data is owned by
 	// main, where it interfaces with pi3hat
-	mjbots::moteus::Pi3HatMoteusInterface::ServoCommand* curr_cmd_ptr_;
-	bool curr_cmd_shared = false;
-	mjbots::moteus::Pi3HatMoteusInterface::ServoCommand* prev_cmd_ptr_;
-	bool prev_cmd_shared = false;
+	mjbots::moteus::Pi3HatMoteusInterface::ServoCommand curr_cmd_;
+	mjbots::moteus::Pi3HatMoteusInterface::ServoCommand prev_cmd_;
 	// replies will not be by reference, as the replies vector in main is at the
 	// whim of getting good replies thru CAN
 	mjbots::moteus::Pi3HatMoteusInterface::ServoReply prev_reply_;

@@ -80,11 +80,11 @@ void Run(Leg& leg) {
   }
   // distributes pointers to this data into the MoteusController objects and
   // initializes the commands (resolution settings etc.)
-  leg.share_commands(curr_commands, prev_commands);
+  // leg.share_commands(curr_commands, prev_commands);
 
   // ** CONTAINER FOR REPLIES **
   std::vector<MoteusInterface::ServoReply> replies{curr_commands.size()};
-  std::vector<MoteusInterface::ServoReply> saved_replies;
+  std::vector<MoteusInterface::ServoReply> saved_replies{curr_commands.size()};
 
   // ** PACKAGE COMMANDS AND REPLIES IN moteus_data **
   MoteusInterface::Data moteus_data;
@@ -153,18 +153,32 @@ void Run(Leg& leg) {
     next_cycle += period;
 
     // **** MANIPULATE COMMANDS HERE FOR OPERATION ****
-    // fsm has power to manipulate commands by pointers
+    // fsm will create commands stored in the leg member actuators
     leg.iterate_fsm();
+    // retrieve the commands (copy)
+    curr_commands[0] = leg.get_femur_cmd();
+    curr_commands[1] = leg.get_tibia_cmd();
 
     if (can_result.valid()) {
       // Now we get the result of our last query and send off our new one.
       const auto current_values = can_result.get();
       // We copy out the results we just got out.
       const auto rx_count = current_values.query_result_size;
-      saved_replies.resize(rx_count);
-      std::copy(replies.begin(), replies.begin() + rx_count, 
-        saved_replies.begin());
+      // saved_replies.resize(rx_count);
+  	  // std::cout << "cycle_count: " << cycle_count
+      //   << " replies.size(): " << replies.size() 
+      //   << " saved_replies.size(): " << saved_replies.size() 
+      //   << " rx_count: " << rx_count << std::endl;
+      // std::copy(replies.begin(), replies.begin() + rx_count, 
+      //   saved_replies.begin());
+      for (size_t ii = 0; ii < replies.size(); ii++)  {
+        saved_replies[ii] = replies[ii];
+      }
     }
+  	if(replies.size() < 2) std::cout << "main: incorrect number of replies: " << replies.size() << std::endl;
+
+    // copy the replies over to the member actuators; they look for ID match. If
+    // there's no matching ID response, fault is raised
     leg.retrieve_replies(saved_replies);
 
     // Then we can immediately ask them to be used again.
@@ -184,7 +198,8 @@ void Run(Leg& leg) {
 
     // kill loop if we miss all these replies
     if (reply_miss_count > 20) {
-      std::cout << "missed too many replies in a row! ending..." << std::endl; break;
+      std::cout << "missed too many replies in a row! ending..." << std::endl;
+      break;
     }
 
     if (cycle_count > 1) {
