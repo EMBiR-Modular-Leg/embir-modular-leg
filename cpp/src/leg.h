@@ -50,10 +50,15 @@ public:
 
 	void log_data();
 
+	void print_status_update();
+
 	inline FSMState get_fsm_curr_state() {return curr_state_;}
 	inline FSMState get_fsm_next_state() {return next_state_;}
 	inline bool ready_to_quit() {return ready_to_quit;}
+	inline bool leg_fault() {return ((bool)act_femur_.fault() || (bool)act_tibia_.fault());}
 	inline LegSettings& get_legset() {return legset_;}
+
+	inline void set_time0(std::chrono::steady_clock::time_point t0) {time0_s_ = t0;}
 
 	inline void share_commands(std::vector<
 		mjbots::moteus::Pi3HatMoteusInterface::ServoCommand>& curr_commands,

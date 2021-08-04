@@ -21,7 +21,7 @@ using namespace mjbots;
 using MoteusInterface = moteus::Pi3HatMoteusInterface;
 
 MoteusController::MoteusController(id_t id, uint8_t bus) : 
-	id_(id), bus_(bus) {
+	id_(id), bus_(bus), curr_cmd_({}), prev_cmd_({}) {
 	
 	moteus::PositionResolution res;
   res.position = moteus::Resolution::kFloat;

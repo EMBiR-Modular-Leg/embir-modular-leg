@@ -1,6 +1,7 @@
 #include <iomanip>
 
 #include "leg.h"
+#include "color.h"
 
 namespace chron = std::chrono;
 
@@ -84,4 +85,24 @@ void Leg::log_data() {
     << act_tibia_.stringify_moteus_reply() << "\n";
 	
 	return;
+}
+
+void Leg::print_status_update() {
+  Color::Modifier bg_temp_m(Color::BG_DEFAULT);
+  Color::Modifier bg_temp_h(Color::BG_DEFAULT);
+  Color::Modifier bg_safe(Color::BG_DEFAULT);
+  
+  Color::Modifier bg_temp_latch(Color::BG_DEFAULT);
+
+  std::cout << CMod::fg_blk << CMod::bg_wht << "  t_p:"
+    << std::setw(7) << std::setprecision(1) << std::fixed << time_prog_s_
+    << "|t_f:"
+    << std::setw(7) << std::setprecision(1) << std::fixed << time_fcn_s_
+    << CMod::fg_def << CMod::bg_def << "|" ;
+  
+  if (!(bool)leg_fault()) std::cout << "|" << CMod::bg_grn << CMod::fg_blk << "**SAFE**";
+  else std::cout << "|" << CMod::bg_red << CMod::fg_blk << "*UNSAFE*";
+  std::cout << CMod::fg_def << CMod::bg_def << "\r";
+  std::cout.flush();
+  return;
 }

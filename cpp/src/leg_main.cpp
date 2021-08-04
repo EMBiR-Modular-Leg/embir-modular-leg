@@ -23,6 +23,7 @@
 
 #include "leg.h"
 #include "color.h"
+#include "utils.h"
 
 #include "sensors/Adafruit_ADS1X15.h"
 #include "sensors/Adafruit_INA260.h"
@@ -48,52 +49,10 @@ void sig_handle(int s) {
   interrupted = true;
 }
 
-void LockMemory() {
-  // We lock all memory so that we don't end up having to page in
-  // something later which can take time.
-  {
-    const int r = ::mlockall(MCL_CURRENT | MCL_FUTURE);
-    if (r < 0) {
-      throw std::runtime_error("Error locking memory");
-    }
-  }
-}
+int Run(Leg& leg) {
 
-void ConfigureRealtime(const uint8_t realtime) {
-  {
-    cpu_set_t cpuset = {};
-    CPU_ZERO(&cpuset);
-    CPU_SET(realtime, &cpuset);
-
-    const int r = ::sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
-    if (r < 0) {
-      throw std::runtime_error("Error setting CPU affinity");
-    }
-
-    std::cout << "Affinity set to " << (int)realtime << "\n";
-  }
-
-  {
-    struct sched_param params = {};
-    params.sched_priority = 10;
-    const int r = ::sched_setscheduler(0, SCHED_RR, &params);
-    if (r < 0) {
-      throw std::runtime_error("Error setting realtime scheduler");
-    }
-  }
-
-  {
-    const int r = ::mlockall(MCL_CURRENT | MCL_FUTURE);
-    if (r < 0) {
-      throw std::runtime_error("Error locking memory");
-    }
-  }
-}
-
-void Run(Leg& leg) {
-
-	Leg::LegSettings& legset = leg.get_legset();
   // * SETUP *
+	Leg::LegSettings& legset = leg.get_legset();
   struct sigaction sigIntHandler;
   sigIntHandler.sa_handler = sig_handle;
   sigemptyset(&sigIntHandler.sa_mask);
@@ -152,8 +111,8 @@ void Run(Leg& leg) {
 
   std::string c1_str, c2_str, a1_str, a2_str, sensor_str;
 
-  // dynamometer->set_t0(chron::steady_clock::now());
   auto t0 = chron::steady_clock::now();
+  leg.set_time0(t0);
 
   float t_prog_s = 0;
 
@@ -181,8 +140,7 @@ void Run(Leg& leg) {
 
       if (skip_count > 50) {
         std::cout << "too many skipped cycles, exiting..." << std::endl;
-        data_file.close();
-        std::exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
       }
     }
     
@@ -253,8 +211,7 @@ void Run(Leg& leg) {
   // }
   // for (auto& cmd : moteus_data.curr_commands) cmd.mode = moteus::Mode::kStopped;
   // moteus_interface.Cycle(moteus_data, nullptr);
-  data_file.close();
-  std::exit(EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
 
 
@@ -322,8 +279,8 @@ int main(int argc, char** argv) {
 	Leg leg(act_femur, act_tibia, data_file, legset);
 
   // return 0;
-  Run(leg);
+  int exit_status = Run(leg);
 
   data_file.close();
-  return 0;
+  return exit_status;
 }
