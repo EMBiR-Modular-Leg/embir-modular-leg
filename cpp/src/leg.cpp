@@ -6,8 +6,8 @@
 namespace chron = std::chrono;
 
 Leg::Leg(LegSettings& legset, std::ostream& datastream) : 
-	act_femur_(legset.act_femur_id, legset.act_femur_bus, legset.gear1, 1.0),
-	act_tibia_(legset.act_tibia_id, legset.act_tibia_bus, legset.gear2, 1.0),
+	act_femur_(legset.act_femur_id, legset.act_femur_bus, legset.gear_femur, 1.0),
+	act_tibia_(legset.act_tibia_id, legset.act_tibia_bus, legset.gear_tibia, 1.0),
 	datastream_(datastream),
 	legset_(legset), commands_() {
 	
@@ -80,6 +80,16 @@ void Leg::log_data() {
 	return;
 }
 
+void Leg::log_headers() {
+	datastream_ << "time [s],"
+    << act_femur_.stringify_actuator_header() << ","
+		<< act_femur_.stringify_moteus_reply_header() << ","
+    << act_tibia_.stringify_actuator_header() << ","
+    << act_tibia_.stringify_moteus_reply_header() << "\n";
+	
+	return;
+}
+
 void Leg::print_status_update() {
   Color::Modifier bg_temp_m(Color::BG_DEFAULT);
   Color::Modifier bg_temp_h(Color::BG_DEFAULT);
@@ -92,9 +102,11 @@ void Leg::print_status_update() {
     << "|t_f:"
     << std::setw(7) << std::setprecision(1) << std::fixed << time_fcn_s_
     << CMod::fg_def << CMod::bg_def << "|" ;
+	std::cout << "FSM:"
+		<< std::setw(2) << std::setprecision(2) << std::fixed << (int)curr_state_ << "|";
   
   if (!(bool)leg_fault()) std::cout << "|" << CMod::bg_grn << CMod::fg_blk << "**SAFE**";
-  else std::cout << "|" << CMod::bg_red << CMod::fg_blk << "*UNSAFE*";
+  else std::cout << "|" << CMod::bg_red << CMod::fg_blk << "*FAULT**";
   std::cout << CMod::fg_def << CMod::bg_def << "\r";
   std::cout.flush();
   return;
@@ -122,11 +134,11 @@ cxxopts::Options leg_opts() {
 			cxxopts::value<float>()->default_value("1.0"))
     ("act-femur-id", "femur actuator CAN ID",
 			cxxopts::value<uint8_t>()->default_value("1"))
-		("act_tibia-id", "tibia actuator CAN ID",
+		("act-tibia-id", "tibia actuator CAN ID",
 			cxxopts::value<uint8_t>()->default_value("2"))
     ("act-femur-bus", "femur actuator CAN bus",
 			cxxopts::value<uint8_t>()->default_value("3"))
-    ("act_tibia-bus", "tibia actuator CAN bus",
+    ("act-tibia-bus", "tibia actuator CAN bus",
 			cxxopts::value<uint8_t>()->default_value("4"))
     ("main-cpu", "main CPU", cxxopts::value<uint8_t>()->default_value("1"))
     ("can-cpu", "CAN CPU", cxxopts::value<uint8_t>()->default_value("2"))
@@ -146,8 +158,8 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
   legset.leg_opts = leg_opts;
   legset.period_s = 1.0/leg_opts["frequency"].as<float>();
   legset.duration_s = leg_opts["duration"].as<float>();
-  legset.gear1 = leg_opts["gear1"].as<float>();
-  legset.gear2 = leg_opts["gear2"].as<float>();
+  legset.gear_femur = leg_opts["gear-femur"].as<float>();
+  legset.gear_tibia = leg_opts["gear-tibia"].as<float>();
   legset.act_femur_id = leg_opts["act-femur-id"].as<uint8_t>();
   legset.act_tibia_id = leg_opts["act-tibia-id"].as<uint8_t>();
   legset.act_femur_bus = leg_opts["act-femur-bus"].as<uint8_t>();

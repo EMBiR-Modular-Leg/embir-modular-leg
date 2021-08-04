@@ -22,8 +22,8 @@ public:
 	struct LegSettings {
 		float period_s;
 		float duration_s;
-		float gear1;
-		float gear2;
+		float gear_femur;
+		float gear_tibia;
 
 		uint8_t act_femur_id;
 		uint8_t act_femur_bus;
@@ -46,6 +46,7 @@ public:
 	void iterate_fsm();
 
 	void log_data();
+	void log_headers();
 
 	void print_status_update();
 
@@ -56,6 +57,7 @@ public:
 	inline LegSettings& get_legset() {return legset_;}
 
 	inline void set_time0(std::chrono::steady_clock::time_point t0) {time0_s_ = t0;}
+	inline float get_time_prog() {return time_prog_s_;}
 
 	inline void share_commands(std::vector<
 		mjbots::moteus::Pi3HatMoteusInterface::ServoCommand>& curr_commands,

@@ -22,7 +22,6 @@
 #include "mjbots/moteus/pi3hat_moteus_interface.h"
 
 #include "leg.h"
-#include "color.h"
 #include "utils.h"
 
 #include "sensors/Adafruit_ADS1X15.h"
@@ -49,9 +48,10 @@ void sig_handle(int s) {
   interrupted = true;
 }
 
-int Run(Leg& leg) {
+void Run(Leg& leg) {
 
   // * SETUP *
+  // ** CTRL+C CATCH **
 	Leg::LegSettings& legset = leg.get_legset();
   struct sigaction sigIntHandler;
   sigIntHandler.sa_handler = sig_handle;
@@ -78,13 +78,13 @@ int Run(Leg& leg) {
     prev_commands.push_back({});
     prev_commands.back().id = pair.first;
   }
+  // distributes pointers to this data into the MoteusController objects and
+  // initializes the commands (resolution settings etc.)
   leg.share_commands(curr_commands, prev_commands);
 
   // ** CONTAINER FOR REPLIES **
   std::vector<MoteusInterface::ServoReply> replies{curr_commands.size()};
   std::vector<MoteusInterface::ServoReply> saved_replies;
-
-  // ** INITIALIZE COMMANDS **
 
   // ** PACKAGE COMMANDS AND REPLIES IN moteus_data **
   MoteusInterface::Data moteus_data;
@@ -93,12 +93,11 @@ int Run(Leg& leg) {
 
   std::future<MoteusInterface::Output> can_result;
 
-  // ** TEST PERIOD **
+  // ** TIMING **
   const auto period =
       chron::microseconds(static_cast<int64_t>(legset.period_s * 1e6));
   auto next_cycle = chron::steady_clock::now() + period;
 
-  // ** TERMINAL STATUS UPDATE PERIOD **
   const auto status_period = chron::microseconds(legset.status_period_us);
   auto next_status = next_cycle + status_period;
   uint64_t cycle_count = 0;
@@ -112,10 +111,10 @@ int Run(Leg& leg) {
   auto t0 = chron::steady_clock::now();
   leg.set_time0(t0);
 
-  float t_prog_s = 0;
+  leg.log_headers();
 
   // * MAIN LOOP *
-  while (!interrupted && t_prog_s < legset.duration_s) {
+  while (!interrupted && leg.get_time_prog() < legset.duration_s) {
     cycle_count++; margin_cycles++;
     // Terminal status update
     {
@@ -125,20 +124,21 @@ int Run(Leg& leg) {
         next_status += status_period;
         total_margin = 0; margin_cycles = 0;
 
-        // dynamometer->print_status_update();
-        std::cout << "here " << cycle_count << " " << t_prog_s << std::endl;
+        leg.print_status_update();
+        // std::cout << cycle_count << " " << leg.get_time_prog() << std::endl;
       }
 
       int skip_count = 0;
-      while (now > next_cycle) skip_count++; next_cycle += period;
+      while (now > next_cycle) {skip_count++; next_cycle += period;}
 
       total_skip_count += skip_count;
       if (skip_count)
-        std::cout << "Skipped " << total_skip_count << "/" << cycle_count <<" cycles in total" << std::endl;
+        std::cout << "Skipped " << total_skip_count << "/" << cycle_count 
+          <<" cycles in total" << std::endl;
 
       if (skip_count > 50) {
         std::cout << "too many skipped cycles, exiting..." << std::endl;
-        return EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
       }
     }
     
@@ -153,15 +153,7 @@ int Run(Leg& leg) {
     next_cycle += period;
 
     // **** MANIPULATE COMMANDS HERE FOR OPERATION ****
-    // dynamometer->Run(saved_replies, &curr_commands);
-    // a1.make_stop();
-    // a2.make_stop();
-
-    // a1.make_act_velocity(1.0*std::sin(t_prog_s), 0);
-    // a1.make_act_position(1.0*std::sin(t_prog_s), 0);
-    // a2.make_act_velocity(1.0*std::sin(t_prog_s), 0);
-    // a2.make_act_position(1.0*std::sin(t_prog_s), 0);
-
+    // fsm has power to manipulate commands by pointers
     leg.iterate_fsm();
 
     if (can_result.valid()) {
@@ -187,15 +179,12 @@ int Run(Leg& leg) {
         });
     can_result = promise->get_future();
 
-    if (cycle_count > 5 && saved_replies.size() >= 2) {
-      reply_miss_count = 0;
-    }
-    else if (cycle_count > 5 && saved_replies.size() < 2)
-      reply_miss_count++;
+    if (cycle_count > 5 && saved_replies.size() >= 2) reply_miss_count = 0;
+    else if (cycle_count > 5 && saved_replies.size() < 2) reply_miss_count++;
 
     // kill loop if we miss all these replies
     if (reply_miss_count > 20) {
-      break; std::cout << "missed too many replies! ending..." << std::endl;
+      std::cout << "missed too many replies! ending..." << std::endl; break;
     }
 
     if (cycle_count > 1) std::copy(curr_commands.begin(), curr_commands.end(), prev_commands.begin());
@@ -204,12 +193,7 @@ int Run(Leg& leg) {
   // IF INTERRUPTED
   std::cout << std::endl << "exiting..." << std::endl;
 
-  // while (!can_result.valid()) {
-  //   // do nothing
-  // }
-  // for (auto& cmd : moteus_data.curr_commands) cmd.mode = moteus::Mode::kStopped;
-  // moteus_interface.Cycle(moteus_data, nullptr);
-  return EXIT_SUCCESS;
+  std::exit(EXIT_SUCCESS);
 }
 
 
@@ -221,7 +205,7 @@ int main(int argc, char** argv) {
   chron::time_point<chron::system_clock> now = chron::system_clock::now();
   std::time_t nowc = chron::system_clock::to_time_t(now);
   std::ostringstream filename_stream;
-  filename_stream << std::put_time(std::localtime(&nowc), "cpp_api_test_%d_%m_%Y_%H-%M-%S.csv");
+  filename_stream << std::put_time(std::localtime(&nowc), "leg_test_%d_%m_%Y_%H-%M-%S.csv");
   std::string filename = filename_stream.str();
   std::cout << "outputting to file \"" << filename << "\"" << std::endl;
 
@@ -252,15 +236,15 @@ int main(int argc, char** argv) {
     .as<std::string>() << "\n# \n";
   data_file << "# period s: " << 1.0/opts["frequency"].as<float>() << "\n";
   data_file << "# duration s: " << opts["duration"].as<float>() << "\n";
-  data_file << "# gear 1: " << opts["gear1"].as<float>() << "\n";
-  data_file << "# gear 2: " << opts["gear2"].as<float>() << "\n";
-  data_file << "# actuator 1 id: " << (int)(opts["actuator-1-id"]
+  data_file << "# gear femur: " << opts["gear-femur"].as<float>() << "\n";
+  data_file << "# gear tibia: " << opts["gear-tibia"].as<float>() << "\n";
+  data_file << "# femur actuator id: " << (int)(opts["act-femur-id"]
     .as<uint8_t>()) << "\n";
-  data_file << "# actuator 2 id: " << (int)(opts["actuator-2-id"]
+  data_file << "# tibia actuator id: " << (int)(opts["act-tibia-id"]
     .as<uint8_t>()) << "\n";
-  data_file << "# actuator 1 bus: " << (int)(opts["actuator-1-bus"]
+  data_file << "# femur actuator bus: " << (int)(opts["act-femur-bus"]
     .as<uint8_t>()) << "\n";
-  data_file << "# actuator 2 bus: " << (int)(opts["actuator-2-bus"]
+  data_file << "# tibia actuator bus: " << (int)(opts["act-tibia-bus"]
     .as<uint8_t>()) << "\n";
   data_file << "# main cpu: " << (int)(opts["main-cpu"].as<uint8_t>()) << "\n";
   data_file << "# can cpu: " << (int)(opts["can-cpu"]
@@ -272,8 +256,8 @@ int main(int argc, char** argv) {
 	Leg leg(legset, data_file);
 
   // return 0;
-  int exit_status = Run(leg);
-
+  Run(leg);
+  std::cout << "(returned to main)" << std::endl;
   data_file.close();
-  return exit_status;
+  std::exit(EXIT_SUCCESS);
 }

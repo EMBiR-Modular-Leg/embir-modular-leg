@@ -1,6 +1,8 @@
 #ifndef COLOR_H
 #define COLOR_H
 
+#pragma once
+
 #include <ostream>
 
 namespace Color {
