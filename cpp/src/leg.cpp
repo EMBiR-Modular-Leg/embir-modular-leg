@@ -127,8 +127,8 @@ void Leg::print_status_update() {
 	std::cout << "FSM:"
 		<< std::setw(2) << std::setprecision(2) << std::fixed << (int)curr_state_ << "|";
   
-  if (!(bool)leg_fault()) std::cout << "|" << CMod::bg_grn << CMod::fg_blk << "**SAFE**";
-  else std::cout << "|" << CMod::bg_red << CMod::fg_blk << "*FAULT**";
+  if (!(bool)leg_fault()) std::cout << CMod::bg_grn << CMod::fg_blk << " **SAFE**";
+  else std::cout << "|" << CMod::bg_red << CMod::fg_blk << "**FAULT**";
   std::cout << CMod::fg_def << CMod::bg_def << "\r";
   std::cout.flush();
   return;

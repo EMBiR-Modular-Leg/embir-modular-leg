@@ -80,7 +80,7 @@ def main() :
         # plt.show()
 
         fs = 1/Ts
-        cutoff = 0.05*fs
+        cutoff = 0.02*fs
         order = 6
         b, a = butter_lowpass(cutoff, fs, order)
 
@@ -157,10 +157,15 @@ def main() :
                         return
                     sidx = int(sstr)
                     label = headers[sidx]
-                    series = data[label].astype(float) if not filt_s else butter_lowpass_filter(data[label].astype(float), cutoff, fs, order)
+                    series = data[label].astype(float) if not filt_s else\
+                        butter_lowpass_filter(\
+                            data[label].astype(float), cutoff, fs, order)
                     
                     ratio = 1
-                    if label.find("torque") > -1 and (label.find("c1") > -1 or label.find("c2") > -1):
+                    if label.find("torque") > -1\
+                        and (label.find("c1") > -1\
+                        or label.find("c2") > -1):
+
                         ratio = gear_ratio
                     if filt_s: label += ", filtered"
                     if scatter: ax.scatter(xseries, ratio*series, label=label, s=1)
