@@ -13,8 +13,8 @@ Leg::Leg(LegSettings& legset, std::ostream& datastream) :
 	
 	act_femur_.zero_offset();
   act_tibia_.zero_offset();
-	act_femur_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a1.cfg");
-	act_tibia_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a2.cfg");
+	act_femur_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
+	act_tibia_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
 }
 
 void Leg::iterate_fsm() {
@@ -33,8 +33,10 @@ void Leg::iterate_fsm() {
   time_prog_old_s_ = time_prog_s_;
 
 	// state logic for simple test:
-	if (((int)time_prog_s_)%2) next_state_ = FSMState::kIdle;
-	else next_state_ = FSMState::kRunning;
+	// if (((int)time_prog_s_)%2) next_state_ = FSMState::kIdle;
+	// else next_state_ = FSMState::kRunning;
+
+	if (time_prog_s_ > 0.1) next_state_ = FSMState::kRunning;
 
 	switch (curr_state_) {
 		case FSMState::kIdle: {
@@ -47,9 +49,9 @@ void Leg::iterate_fsm() {
 			// act_femur_.make_stop();
 			// act_tibia_.make_stop();
 			// act_femur_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
-			act_femur_.make_act_position(0.8*std::sin(time_fcn_s_), 0);
+			act_femur_.make_act_position(0.8*2*PI*std::sin(4*time_fcn_s_), 0);
 			// act_tibia_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
-			act_tibia_.make_act_position(0.8*std::sin(time_fcn_s_), 0);
+			act_tibia_.make_act_position(0.8*2*PI*std::sin(4*time_fcn_s_), 0);
 			break;}
 		case FSMState::kRecovery: {
 			// if coming from non-recovery, store the state so we can go back

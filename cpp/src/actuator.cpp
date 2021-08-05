@@ -1,10 +1,10 @@
 #include <sstream>
 #include "actuator.h"
 
-Actuator::Actuator(id_t id, uint8_t bus, float gear_ratio, float trq_efficiency) : MoteusController(id, bus), gear_ratio_(gear_ratio),
+Actuator::Actuator(id_t id, uint8_t bus, float gear_ratio, float trq_efficiency)
+  : MoteusController(id, bus), gear_ratio_(gear_ratio),
 	trq_efficiency_(trq_efficiency) {
 	return;
-	
 }
 
 std::string Actuator::stringify_actuator() {
