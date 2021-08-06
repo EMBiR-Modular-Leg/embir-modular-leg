@@ -247,11 +247,21 @@ Leg::LegKinematics::fk_vec(Leg::LegKinematics::JointAngles angles) {
 	float femur_angle_rad = angles.femur_angle_rad;
 	float tibia_angle_rad = angles.tibia_angle_rad;
 	Position p0 = Position({0,0});
-	Position p1 = p0 + Position({l1_*std::sin(-femur_angle_rad), -l1_*std::cos(-femur_angle_rad)});
-	Position p21 = p1 + Position({l2_pll_*std::sin(-femur_angle_rad-tibia_angle_rad), -l2_pll_*std::cos(-femur_angle_rad-tibia_angle_rad)});
-	Position p22 = p21 + Position({-l2_perp_*std::cos(-femur_angle_rad-tibia_angle_rad), -l2_perp_*std::sin(-femur_angle_rad-tibia_angle_rad)});
-	Position p31 = p22 + Position({-l3_pll_*std::cos(-femur_angle_rad), -l3_pll_*std::sin(-femur_angle_rad)});
-	Position p32 = p31 + Position({l3_perp_*std::sin(-femur_angle_rad), -l3_perp_*std::cos(-femur_angle_rad)});
+	Position p1 = p0 + Position(
+		{l1_*std::sin(-femur_angle_rad),
+		-l1_*std::cos(-femur_angle_rad)});
+	Position p21 = p1+ Position(
+		{l2_pll_*std::sin(-femur_angle_rad-tibia_angle_rad),
+		-l2_pll_*std::cos(-femur_angle_rad-tibia_angle_rad)});
+	Position p22 = p21+ Position(
+		{-l2_perp_*std::cos(-femur_angle_rad-tibia_angle_rad),
+		-l2_perp_*std::sin(-femur_angle_rad-tibia_angle_rad)});
+	Position p31 = p22+ Position(
+		{-l3_pll_*std::cos(-femur_angle_rad),
+		-l3_pll_*std::sin(-femur_angle_rad)});
+	Position p32 = p31+ Position(
+		{l3_perp_*std::sin(-femur_angle_rad),
+		-l3_perp_*std::cos(-femur_angle_rad)});
 
 	return {p0, p1, p21, p22, p31, p32};
 }
@@ -261,22 +271,26 @@ Leg::LegKinematics::fk_2link(JointAngles angles) {
 	auto alpha = joint2alpha({angles.femur_angle_rad, angles.tibia_angle_rad});
 	float a1 = alpha.a1_rad;
 	float a2 = alpha.a2_rad;
-	
+
 	Position p0 = {0,0};
-	Position p1 = p0 + Position({r1_*std::cos(alpha.a1_rad), r1_*std::sin(a1)});
-	Position p2 = p1 + Position({r2_*std::cos(alpha.a1_rad+alpha.a2_rad), r2_*std::sin(a1+a2)});
+	Position p1 = p0 + Position(
+		{r1_*std::cos(alpha.a1_rad), r1_*std::sin(a1)});
+	Position p2 = p1 + Position(
+		{r2_*std::cos(alpha.a1_rad+alpha.a2_rad), r2_*std::sin(a1+a2)});
 
 	return {p0,p1,p2};
 }
 
 Leg::LegKinematics::JointAngles
 Leg::LegKinematics::ik_2link(Position pos) {
-	float cosarg = (pos.y_m*pos.y_m + pos.z_m*pos.z_m - r1_*r1_ - r2_*r2_) / (2*r1_*r2_);
+	float cosarg = (pos.y_m*pos.y_m + pos.z_m*pos.z_m - r1_*r1_ - r2_*r2_) 
+		/ (2*r1_*r2_);
 	if (cosarg > 1 or cosarg < -1)
 		std::cerr << "invalid arccos arg: " << cosarg << std::endl;
 	
 	float a2 = -std::acos(cosarg);
-	float a1 = std::atan2(pos.z_m,pos.y_m) - std::atan2(r2_*std::sin(a2), r1_+r2_*std::cos(a2));
+	float a1 = std::atan2(pos.z_m,pos.y_m) 
+		- std::atan2(r2_*std::sin(a2), r1_+r2_*std::cos(a2));
 
 	auto angles = alpha2joint({a1, a2});
 

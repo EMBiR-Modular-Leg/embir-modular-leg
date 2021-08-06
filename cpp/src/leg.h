@@ -78,19 +78,7 @@ public:
 			Jacobian operator-() {return {-J11, -J12, -J21, -J22};}
 		};
 		LegKinematics(URDF& leg_urdf);
-
-		Position forward_kinematics(float femur_angle_rad, float tibia_angle_rad);
-
-		inline Position forward_kinematics(JointAngles angles) {
-			return forward_kinematics(angles.femur_angle_rad, angles.tibia_angle_rad);
-		}
 		
-		JointAngles inverse_kinematics(float y_m, float z_m);
-
-		inline JointAngles inverse_kinematics(Position position) {
-			return inverse_kinematics(position.y_m, position.z_m);
-		}
-
 		AlphaAngles joint2alpha(JointAngles angles);
 		JointAngles	alpha2joint(AlphaAngles angles);
 		std::vector<Position> fk_vec(JointAngles angles);
