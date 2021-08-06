@@ -154,6 +154,7 @@ void Run(Leg& leg) {
 
     // **** MANIPULATE COMMANDS HERE FOR OPERATION ****
     // fsm will create commands stored in the leg member actuators
+    // leg.print_status_update();
     leg.iterate_fsm();
     // retrieve the commands (copy)
     curr_commands[0] = leg.get_femur_cmd();

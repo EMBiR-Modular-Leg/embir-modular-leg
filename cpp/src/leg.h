@@ -20,6 +20,14 @@ public:
 		kQuitting,
 	};
 
+	enum ActionMode : uint8_t {
+		kNone,
+		kSafeZoneTest,
+		kStand,
+		kCyclicCrouch,
+		kJump,
+	};
+
 	struct LegSettings {
 		float period_s;
 		float duration_s;
@@ -140,6 +148,8 @@ private:
 	Actuator act_tibia_;
 	std::ostream& datastream_;
 
+	// *** LOW LEVEL ***
+
 	// These are vectors of references to ServoCommand's that basically act like
 	// vectors of ServoCommand's. This means that the command data is only stored
 	// in the MoteusController objects and everyone else just has references to
@@ -172,8 +182,12 @@ private:
 	uint8_t recovery_cycle = 0;
 	uint8_t recovery_cycle_thresh = 3;
 
+	// *** HIGH LEVEL ***
 
 	URDF leg_urdf_;
+	ActionMode action_mode_ = ActionMode::kCyclicCrouch;
+
+	void run_action();
 };
 
 cxxopts::Options leg_opts();

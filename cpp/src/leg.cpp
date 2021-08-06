@@ -90,6 +90,8 @@ void Leg::iterate_fsm() {
 			act_femur_.make_act_position(0.8*2*PI*std::sin(4*time_fcn_s_), 0);
 			// act_tibia_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
 			act_tibia_.make_act_position(0.8*2*PI*std::sin(4*time_fcn_s_), 0);
+
+			run_action();
 			break;}
 		case FSMState::kRecovery: {
 			// if coming from non-recovery, store the state so we can go back
@@ -233,6 +235,43 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
   return legset;
 }
 
+void Leg::run_action() {
+	// std::cout << "in run_action()" << std::endl;
+	
+	switch (action_mode_) {
+		case ActionMode::kNone: {
+			act_femur_.make_stop();
+			act_tibia_.make_stop();
+			break;}
+		case ActionMode::kSafeZoneTest: {
+			break;}
+		case ActionMode::kStand: {
+			break;}
+		case ActionMode::kCyclicCrouch: {
+			// std::cout << "in kCyclicCrouch" << std::endl;
+			float ampl_m = 0.05;
+			float center_m = -0.2;
+			float z = ampl_m*std::sin(time_fcn_s_) + center_m;
+			LegKinematics::Position foot_pos = {0,z};
+			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
+
+			act_femur_.make_act_position(joint_angles.femur_angle_rad, 0);
+			act_tibia_.make_act_position(joint_angles.tibia_angle_rad, 0);
+
+			// std::cout << "leaving kCyclicCrouch" << std::endl;
+			break;}
+		case ActionMode::kJump: {
+			break;}
+		default: {
+			act_femur_.make_stop();
+			act_tibia_.make_stop();
+			break;}
+	}
+	return;
+}
+
+
+// KINEMATICS
 
 Leg::LegKinematics::LegKinematics(URDF& leg_urdf) {
 	l1_ = fabs(leg_urdf.joint_dict[std::string("knee_joint")].joint_origin.z_m);

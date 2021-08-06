@@ -10,6 +10,8 @@ from scipy.signal import butter, lfilter, freqz
 
 from utils import *
 
+from kinematics import Kinematics
+
 def main() :
     parser = argparse.ArgumentParser(description='Plots data from csv')
     parser.add_argument("filename",\
@@ -18,7 +20,10 @@ def main() :
         help="interactive mode: decide which data to plot of what is present in csv",
         action='store_true')
     parser.add_argument("--minicheetah",\
-        help="specify number of samples to use for running average filtering",
+        help="for looking at mini cheetah replay data",
+        action='store_true')
+    parser.add_argument("--kinematics",\
+        help="do forward kinematics",
         action='store_true')
     parser.add_argument("-o", "--outlier",\
         help="outlier rejection: ignore rows in the csv for which brake torque data are in the <arg> extremes of the data: -o 0.05 will drop the top and bottom 5%.",
@@ -33,6 +38,17 @@ def main() :
     args = parser.parse_args()
     
     data = pd.read_csv(args.filename, comment='#', header=0)
+    kin = Kinematics(l3_pll_in=18, l3_perp_in=135)
+
+    if args.kinematics :
+        cmd_fk = kin.fk_vec(data["a1 position cmd [rad]"].astype(float), data["a2 position cmd [rad]"].astype(float))
+        res_fk = kin.fk_vec(data["a1 position [rad]"].astype(float), data["a2 position [rad]"].astype(float))
+        
+        data["cmd y [m]"] = cmd_fk[-1,-2,:]/1000
+        data["cmd z [m]"] = cmd_fk[-1,-1,:]/1000
+
+        data["res y [m]"] = res_fk[-1,-2,:]/1000
+        data["res z [m]"] = res_fk[-1,-1,:]/1000
 
     # if args.outlier is not None:
         # import ipdb; ipdb.set_trace()
