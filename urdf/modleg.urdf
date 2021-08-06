@@ -15,7 +15,7 @@
     </contact>
     <inertial>
       <origin
-        xyz="-0.002 7.6664E-11 -1.0996E-05"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
         value="0.00020106" />
@@ -92,10 +92,10 @@
     </collision>
   </link>
   <joint
-    name="base_to_femur"
+    name="hip_joint"
     type="continuous">
     <origin
-      xyz="-0.1116 0 -0.000635"
+      xyz="-0.1116 0 0"
       rpy="0 0 0" />
     <parent
       link="base_link" />
@@ -153,7 +153,7 @@
     name="knee_joint"
     type="revolute">
     <origin
-      xyz="0.02414 0 -0.12699"
+      xyz="0.025 0.000 -0.125"
       rpy="0 0 0" />
     <parent
       link="femur_link" />
@@ -168,7 +168,7 @@
       velocity="5" />
   </joint>
 
-<link name = "dummy_link1">
+  <link name = "dummy_link1">
     <visual>
       <origin xyz="0 0.070 0" rpy="0 0 0" />
       <geometry>
@@ -189,7 +189,6 @@
     </collision>
   </link>
 
-
   <joint name="dummy_joint1" type="continuous">
     <parent link="femur_link" />
     <child link="dummy_link1" />
@@ -197,12 +196,11 @@
     <axis xyz="1 0 0" />
   </joint>
 
-
   <link
     name="podial_link">
     <inertial>
       <origin
-        xyz="9.2068E-05 -0.017527 -0.01991"
+        xyz="0 -0.017527 -0.01991"
         rpy="0 0 0" />
       <mass
         value="0.072" />
@@ -239,10 +237,10 @@
     </collision>
   </link>
   <joint
-    name="Ankle Joint"
+    name="ankle_joint"
     type="revolute">
     <origin
-      xyz="0 0.139 -0.025"
+      xyz="0.000 0.140 -0.025"
       rpy="0 0 0" />
     <parent
       link="tibia_link" />
@@ -258,7 +256,7 @@
   </joint>
 
   <link
-    name="Foot_link">
+    name="foot_link">
     <inertial>
       <origin
         xyz="0.00010171 -0.1244 -0.018501"
@@ -279,7 +277,7 @@
         rpy="1.57079632679 0 0" />
       <geometry>
         <mesh
-          filename="package://Fourth_URDF_test.urdf/meshes/Foot_link.STL" />
+          filename="package://Fourth_URDF_test.urdf/meshes/foot_link.STL" />
       </geometry>
       <material
         name="">
@@ -293,7 +291,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://Fourth_URDF_test.urdf/meshes/Foot_link.STL" />
+          filename="package://Fourth_URDF_test.urdf/meshes/foot_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -301,12 +299,12 @@
     name="tibia_to_foot"
     type="fixed">
     <origin
-      xyz="0 0.01800 -0.1350"
+      xyz="0.000 0.018 -0.135"
       rpy="0 0 0" />
     <parent
       link="podial_link" />
     <child
-      link="Foot_link" />
+      link="foot_link" />
     <axis
       xyz="0 0 0" />
   </joint>

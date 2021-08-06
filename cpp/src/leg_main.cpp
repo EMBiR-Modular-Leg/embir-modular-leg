@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
 	Leg leg(
     legset,
     data_file,
-    "/home/pi/embir-modular-leg/urdf/Fourth_URDF_export_with_closed_bar_link_4link.urdf");
+    "/home/pi/embir-modular-leg/urdf/modleg.urdf");
 
   // return 0;
   Run(leg);

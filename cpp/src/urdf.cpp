@@ -97,7 +97,7 @@ URDF::URDF(std::string path) : path_(path) {
 
 URDF::RobotElement::RobotElement(xml_node<> * rob_elem_node) {
 	name = rob_elem_node->first_attribute("name")->value();
-	std::cout << "\n\n" << name << std::endl;
+	std::cout << name << ":  ";
 	return;
 }
 
@@ -110,6 +110,7 @@ URDF::Link::Link(xml_node<> * link_node) : RobotElement(link_node) {
 	std::string mass_str =
 		inertial_ptr->first_node("mass")->first_attribute("value")->value();
 	mass_kg = std::stof(mass_str);
+	std::cout << "mass: " << mass_kg << std::endl;
 
 	inertia.i_xx_kgm2 = get_inertia(inertial_ptr, "ixx");
 	inertia.i_xy_kgm2 = get_inertia(inertial_ptr, "ixy");
@@ -132,19 +133,14 @@ URDF::Joint::Joint(xml_node<> * joint_node) : RobotElement(joint_node) {
 
 	std::string xyz_str =
 		joint_node->first_node("axis")->first_attribute("xyz")->value();
-	// std::string::size_type sz;
-  // joint_axis.x = std::stof (xyz_str,&sz);
-  // joint_axis.y = std::stof (xyz_str.substr(sz), &sz);
-  // joint_axis.z = std::stof (xyz_str.substr(sz), &sz);
-
 	std::stringstream ss(xyz_str);
-  // origin.x_m = std::stof (xyz_str,&sz);
-  // origin.y_m = std::stof (xyz_str.substr(sz), &sz);
-  // origin.z_m = std::stof (xyz_str.substr(sz), &sz);
-
 	ss >> joint_axis.x;
 	ss >> joint_axis.y;
 	ss >> joint_axis.z;
+	std::cout << "axis: "
+		<< joint_axis.x << ", "
+		<< joint_axis.y << ", "
+		<< joint_axis.z << std::endl;
 
 	auto limit_ptr = joint_node->first_node("limit");
 	if (!limit_ptr) return;
