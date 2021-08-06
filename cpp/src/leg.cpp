@@ -5,11 +5,13 @@
 
 namespace chron = std::chrono;
 
-Leg::Leg(LegSettings& legset, std::ostream& datastream) : 
+Leg::Leg(LegSettings& legset, std::ostream& datastream, std::string urdf_file) : 
 	act_femur_(legset.act_femur_id, legset.act_femur_bus, legset.gear_femur, 1.0),
 	act_tibia_(legset.act_tibia_id, legset.act_tibia_bus, legset.gear_tibia, 1.0),
 	datastream_(datastream),
-	legset_(legset), commands_() {
+	legset_(legset),
+	commands_(),
+	leg_urdf_(urdf_file) {
 	
 	act_femur_.zero_offset();
   act_tibia_.zero_offset();

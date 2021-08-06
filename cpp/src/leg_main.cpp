@@ -273,7 +273,10 @@ int main(int argc, char** argv) {
   ConfigureRealtime(legset.main_cpu);
   ConfigureRealtime(legset.can_cpu);
 
-	Leg leg(legset, data_file);
+	Leg leg(
+    legset,
+    data_file,
+    "/home/pi/embir-modular-leg/urdf/Fourth_URDF_export_with_closed_bar_link_4link.urdf");
 
   // return 0;
   Run(leg);

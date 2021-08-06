@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="Modular Leg">
+   <material name="red">
+    <color rgba = "0.8 0 0 1"/>
+  </material>
+
+  <link
+    name="base_link">
+    <contact>
+      <lateral_friction value="1.0"/>
+    </contact>
+    <inertial>
+      <origin
+        xyz="-0.002 7.6664E-11 -1.0996E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.00020106" />
+      <inertia
+        ixx="1.6085E-09"
+        ixy="-2.0552E-17"
+        ixz="2.9477E-12"
+        iyy="1.0723E-09"
+        iyz="-1.1299E-19"
+        izz="1.0723E-09" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 1.57079632679 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="femur_link">
+    <inertial>
+      <origin
+        xyz="0.030223 -0.010552 -0.0017998"
+        rpy="0 0 0" />
+      <mass
+        value="1.164" />
+      <inertia
+        ixx="0.0014288"
+        ixy="-2.1282E-05"
+        ixz="6.4858E-07"
+        iyy="0.00070696"
+        iyz="3.8243E-06"
+        izz="0.00086053" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.57079632679 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/femur_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.75294 0.75294 0.75294 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.57079632679 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/femur_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="base_to_femur"
+    type="continuous">
+    <origin
+      xyz="-0.1116 0 -0.000635"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="femur_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="tibia_link">
+    <inertial>
+      <origin
+        xyz="0.00017727 0.0021083 -0.034401"
+        rpy="0 0 0" />
+      <mass
+        value="0.112" />
+      <inertia
+        ixx="0.00018789"
+        ixy="2.2688E-08"
+        ixz="2.1389E-09"
+        iyy="0.00017966"
+        iyz="-4.4976E-06"
+        izz="1.724E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0.00 -0.024"
+        rpy="-1.57079632679 3.1415269 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/tibia_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.75294 0.75294 0.75294 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0.00 -0.024"
+        rpy="-1.57079632679 3.1415269 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/tibia_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="knee_joint"
+    type="revolute">
+    <origin
+      xyz="0.02414 0 -0.12699"
+      rpy="0 0 0" />
+    <parent
+      link="femur_link" />
+    <child
+      link="tibia_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.8727"
+      upper="1.1345"
+      effort="6"
+      velocity="5" />
+  </joint>
+
+<link name = "dummy_link1">
+    <visual>
+      <origin xyz="0 0.070 0" rpy="0 0 0" />
+      <geometry>
+        <box size ="0.006 0.145 0.006"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.014"/>
+      <inertia ixx="1.897E-05" ixy="1.7926E-08" ixz="1.002E-07" iyy="1.8288E-05" iyz="-3.2606E-06" izz="7.4588E-07"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0.070 0" rpy="0 0 0" />
+      <geometry>
+        <box size ="0.006 0.145 0.006"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <joint name="dummy_joint1" type="continuous">
+    <parent link="femur_link" />
+    <child link="dummy_link1" />
+    <origin xyz="0.031 0.03 -0.08659" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+
+  <link
+    name="podial_link">
+    <inertial>
+      <origin
+        xyz="9.2068E-05 -0.017527 -0.01991"
+        rpy="0 0 0" />
+      <mass
+        value="0.072" />
+      <inertia
+        ixx="0.00010743"
+        ixy="-2.159E-08"
+        ixz="-1.4483E-08"
+        iyy="7.6985E-06"
+        iyz="2.8101E-06"
+        izz="0.00010293" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.57079632679 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/podial_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.75294 0.75294 0.75294 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.57079632679 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/podial_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Ankle Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.139 -0.025"
+      rpy="0 0 0" />
+    <parent
+      link="tibia_link" />
+    <child
+      link="podial_link" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="-0.9076"
+      upper="1.1868"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+  <link
+    name="Foot_link">
+    <inertial>
+      <origin
+        xyz="0.00010171 -0.1244 -0.018501"
+        rpy="0 0 0" />
+      <mass
+        value="0.0047851" />
+      <inertia
+        ixx="2.785E-07"
+        ixy="1.24E-22"
+        ixz="8.7129E-28"
+        iyy="1.6196E-07"
+        iyz="-8.1252E-13"
+        izz="2.785E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0.025"
+        rpy="1.57079632679 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/Foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://Fourth_URDF_test.urdf/meshes/Foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="tibia_to_foot"
+    type="fixed">
+    <origin
+      xyz="0 0.01800 -0.1350"
+      rpy="0 0 0" />
+    <parent
+      link="podial_link" />
+    <child
+      link="Foot_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>

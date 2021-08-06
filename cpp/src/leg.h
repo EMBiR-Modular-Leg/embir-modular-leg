@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "actuator.h"
+#include "urdf.h"
 
 #include "cxxopts/cxxopts.hpp"
 
@@ -41,7 +42,7 @@ public:
 		float replay_trq_scale;
 	};
 
-	Leg(LegSettings& legset, std::ostream& datastream);
+	Leg(LegSettings& legset, std::ostream& datastream, std::string urdf_file);
 
 	void iterate_fsm();
 
@@ -117,6 +118,9 @@ private:
 
 	uint8_t recovery_cycle = 0;
 	uint8_t recovery_cycle_thresh = 3;
+
+
+	URDF leg_urdf_;
 };
 
 cxxopts::Options leg_opts();

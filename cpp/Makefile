@@ -1,6 +1,6 @@
 # VPATH = src/adafruit/ src/main/ build/
 VPATH = src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir\
-	src/nlohmann src/sensors
+	src/nlohmann src/sensors src/rapidcsv src/rapidxml
 # vpath %.h src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir src/nlohmann
 # vpath %.hpp src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir src/nlohmann
 # vpath %.cpp src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir
@@ -22,7 +22,7 @@ M_CTRL_OBJS := moteus_control_example.o pi3hat.o $(COMMON_OBJS)
 CPP_API_DEMO_OBJS := cpp_api_demo.o actuator.o moteus_controller.o pi3hat.o \
 	$(COMMON_OBJS)
 LEG_OBJS := leg_main.o leg.o pi3hat.o actuator.o moteus_controller.o \
-	utils.o $(COMMON_OBJS)
+	utils.o urdf.o $(COMMON_OBJS)
 
 BINS := ads_test pi3hat_tool dynamometer cpp_api_demo leg
 
