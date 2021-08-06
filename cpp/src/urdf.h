@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <map>
 
 #include "rapidxml/rapidxml.hpp"
 
@@ -99,6 +100,7 @@ public :
 	std::vector<std::reference_wrapper<RobotElement>> elems;
 	std::vector<Joint> joints;
 	std::vector<Link> links;
+	std::map<std::string, std::reference_wrapper<RobotElement>> elem_dict;
 
 private :
 

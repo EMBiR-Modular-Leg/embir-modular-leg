@@ -1,11 +1,20 @@
 #include <iomanip>
+#include <cmath>
 
 #include "leg.h"
 #include "color.h"
 
 namespace chron = std::chrono;
 
-Leg::Leg(LegSettings& legset, std::ostream& datastream, std::string urdf_file) : 
+float clamp(float angle) {
+	while (angle > PI) 
+			angle -= 2 * PI;
+	while (angle <= -PI) 
+			angle += 2 * PI;
+	return angle;
+}
+
+Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_file) : 
 	act_femur_(legset.act_femur_id, legset.act_femur_bus, legset.gear_femur, 1.0),
 	act_tibia_(legset.act_tibia_id, legset.act_tibia_bus, legset.gear_tibia, 1.0),
 	datastream_(datastream),
@@ -195,4 +204,104 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
   legset.replay_vel_scale = leg_opts["replay-vel-scale"].as<float>();
   legset.replay_trq_scale = leg_opts["replay-trq-scale"].as<float>();
   return legset;
+}
+
+
+
+
+Leg::LegKinematics::LegKinematics(URDF& leg_urdf) {
+	l1_ = fabs(leg_urdf.elem_dict["knee_joint"].get().joint_origin.z_m);
+
+	l2_pll_ = fabs(leg_urdf.elem_dict["ankle_joint"].get().joint_origin.z_m);
+	l2_perp_ = fabs(leg_urdf.elem_dict["ankle_joint"].get().joint_origin.y_m);
+
+	l3_pll_ = fabs(leg_urdf.elem_dict["tibia_foot_joint"].get().joint_origin.y_m);
+	l3_perp_ = fabs(leg_urdf.elem_dict["tibia_foot_joint"].get().joint_origin.z_m);
+	
+	r1_ = std::sqrt( (l1_ + l3_perp_)*(l1_ + l3_perp_) + l3_pll_*l3_pll_);
+	r2_ = std::sqrt( (l2_perp_)*(l2_perp_) + l2_pll_*l2_pll_);
+
+	gamma1_ = std::atan2(l3_pll_, l1_+l3_perp_);
+	gamma2_ = std::atan2(l2_pll_, l2_perp_);
+
+	return;
+}
+
+Leg::LegKinematics::AlphaAngles
+Leg::LegKinematics::joint2alpha(Leg::LegKinematics::JointAngles angles) {
+	float a1 = -0.5*PI - angles.femur_angle_rad - gamma1_;
+	float a2 = -0.5*PI - angles.tibia_angle_rad + gamma2_ + gamma1_;
+	return {a1, a2};
+}
+
+Leg::LegKinematics::JointAngles
+Leg::LegKinematics::alpha2joint(Leg::LegKinematics::AlphaAngles angles) {
+	float femur_angle_rad = -angles.a1_rad - gamma1_ - 0.5*PI;
+	float tibia_angle_rad = -angles.a2_rad + gamma1_ + gamma2_ - 0.5*PI;
+	return {femur_angle_rad, tibia_angle_rad};
+}
+
+std::vector<Leg::LegKinematics::Position>
+Leg::LegKinematics::fk_vec(Leg::LegKinematics::JointAngles angles) {
+
+	float femur_angle_rad = angles.femur_angle_rad;
+	float tibia_angle_rad = angles.tibia_angle_rad;
+	Position p0 = Position({0,0});
+	Position p1 = p0 + Position({l1_*std::sin(-femur_angle_rad), -l1_*std::cos(-femur_angle_rad)});
+	Position p21 = p1 + Position({l2_pll_*std::sin(-femur_angle_rad-tibia_angle_rad), -l2_pll_*std::cos(-femur_angle_rad-tibia_angle_rad)});
+	Position p22 = p21 + Position({-l2_perp_*std::cos(-femur_angle_rad-tibia_angle_rad), -l2_perp_*std::sin(-femur_angle_rad-tibia_angle_rad)});
+	Position p31 = p22 + Position({-l3_pll_*std::cos(-femur_angle_rad), -l3_pll_*std::sin(-femur_angle_rad)});
+	Position p32 = p31 + Position({l3_perp_*std::sin(-femur_angle_rad), -l3_perp_*std::cos(-femur_angle_rad)});
+
+	return {p0, p1, p21, p22, p31, p32};
+}
+
+std::vector<Leg::LegKinematics::Position>
+Leg::LegKinematics::fk_2link(JointAngles angles) {
+	auto alpha = joint2alpha({angles.femur_angle_rad, angles.tibia_angle_rad});
+	float a1 = alpha.a1_rad;
+	float a2 = alpha.a2_rad;
+	
+	Position p0 = {0,0};
+	Position p1 = p0 + Position({r1_*std::cos(alpha.a1_rad), r1_*std::sin(a1)});
+	Position p2 = p1 + Position({r2_*std::cos(alpha.a1_rad+alpha.a2_rad), r2_*std::sin(a1+a2)});
+
+	return {p0,p1,p2};
+}
+
+Leg::LegKinematics::JointAngles
+Leg::LegKinematics::ik_2link(Position pos) {
+	float cosarg = (pos.y_m*pos.y_m + pos.z_m*pos.z_m - r1_*r1_ - r2_*r2_) / (2*r1_*r2_);
+	if (cosarg > 1 or cosarg < -1)
+		std::cerr << "invalid arccos arg: " << cosarg << std::endl;
+	
+	float a2 = -std::acos(cosarg);
+	float a1 = std::atan2(pos.z_m,pos.y_m) - std::atan2(r2_*std::sin(a2), r1_+r2_*std::cos(a2));
+
+	auto angles = alpha2joint({a1, a2});
+
+	return {clamp(angles.femur_angle_rad), clamp(angles.tibia_angle_rad)};
+}
+
+Leg::LegKinematics::Jacobian
+Leg::LegKinematics::jacobian_alpha(Leg::LegKinematics::AlphaAngles angles) {
+	float a1 = angles.a1_rad;
+	float a2 = angles.a2_rad;
+	float s1 = std::sin(a1);
+	float c1 = std::cos(a1);
+	float s12 = std::sin(a1+a2);
+	float c12 = std::cos(a1+a2);
+
+	float J11 = -r1_*s1 - r2_*s12;
+	float J21 = r1_*c1 + r2_*c12;
+	float J12 = -r2_*s12;
+	float J22 = r2_*c12;
+
+	return {J11, J12, J21, J22};
+}
+
+Leg::LegKinematics::Jacobian
+Leg::LegKinematics::jacobian_joint(Leg::LegKinematics::JointAngles angles) {
+	auto alpha = joint2alpha({angles.femur_angle_rad, angles.tibia_angle_rad});
+	return -jacobian_alpha(alpha);
 }

@@ -42,6 +42,68 @@ public:
 		float replay_trq_scale;
 	};
 
+	class LegKinematics {
+	public:
+		struct JointAngles {
+			float femur_angle_rad;
+			float tibia_angle_rad;
+
+			friend JointAngles operator+(JointAngles lhs, const JointAngles& rhs) {
+				return {lhs.femur_angle_rad + rhs.femur_angle_rad,
+								lhs.tibia_angle_rad + rhs.tibia_angle_rad};
+			}
+			JointAngles operator-() {return {-femur_angle_rad, -tibia_angle_rad};}
+		};
+		struct AlphaAngles {
+			float a1_rad;
+			float a2_rad;
+
+			friend AlphaAngles operator+(AlphaAngles lhs, const AlphaAngles& rhs) {
+				return {lhs.a1_rad + rhs.a1_rad,
+								lhs.a2_rad + rhs.a2_rad};
+			}
+			AlphaAngles operator-() {return {-a1_rad, -a2_rad};}
+		};
+		struct Position {
+			float y_m;
+			float z_m;
+			friend Position operator+(Position lhs, const Position& rhs) {
+				return {lhs.y_m + rhs.y_m,
+								lhs.z_m + rhs.z_m};
+			}
+			Position operator-() {return {-y_m, -z_m};}
+		};
+		struct Jacobian {
+			float J11, J12, J21, J22;
+			Jacobian operator-() {return {-J11, -J12, -J21, -J22};}
+		};
+		LegKinematics(URDF& leg_urdf);
+
+		Position forward_kinematics(float femur_angle_rad, float tibia_angle_rad);
+
+		inline Position forward_kinematics(JointAngles angles) {
+			return forward_kinematics(angles.femur_angle_rad, angles.tibia_angle_rad);
+		}
+		
+		JointAngles inverse_kinematics(float y_m, float z_m);
+
+		inline JointAngles inverse_kinematics(Position position) {
+			return inverse_kinematics(position.y_m, position.z_m);
+		}
+
+		AlphaAngles joint2alpha(JointAngles angles);
+		JointAngles	alpha2joint(AlphaAngles angles);
+		std::vector<Position> fk_vec(JointAngles angles);
+		std::vector<Position> fk_2link(JointAngles angles);
+		JointAngles ik_2link(Position pos);
+		Jacobian jacobian_alpha(AlphaAngles angles);
+		Jacobian jacobian_joint(JointAngles angles);
+
+
+	private:
+		float l1_, l2_pll_, l2_perp_, l3_pll_, l3_perp_, r1_, r2_, gamma1_, gamma2_;
+	};
+
 	Leg(LegSettings& legset, std::ostream& datastream, std::string urdf_file);
 
 	void iterate_fsm();
