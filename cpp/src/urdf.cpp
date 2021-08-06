@@ -56,13 +56,13 @@ URDF::RobotElement::Origin URDF::RobotElement::get_origin(
 	ss_rpy >> origin.p_rad;
 	ss_rpy >> origin.y_rad;
 
-	std::cout << "origin: "
-		<< origin.x_m << ", "
-		<< origin.y_m << ", "
-		<< origin.z_m << ", "
-		<< origin.r_rad << ", "
-		<< origin.p_rad << ", "
-		<< origin.y_rad << std::endl;
+	// std::cout << "origin: "
+	// 	<< origin.x_m << ", "
+	// 	<< origin.y_m << ", "
+	// 	<< origin.z_m << ", "
+	// 	<< origin.r_rad << ", "
+	// 	<< origin.p_rad << ", "
+	// 	<< origin.y_rad << std::endl;
 
 	return origin;
 }
@@ -94,6 +94,7 @@ URDF::URDF(std::string path) : path_(path) {
 	}
 
 	// populate map dict
+	// consider changing this to an index lookup to the vectors
 	for (size_t ii = 0; ii < joints.size(); ii++)
 		joint_dict[joints[ii].name] = joints[ii];
 
@@ -105,7 +106,7 @@ URDF::URDF(std::string path) : path_(path) {
 
 URDF::RobotElement::RobotElement(xml_node<> * rob_elem_node) {
 	name = rob_elem_node->first_attribute("name")->value();
-	std::cout << name << ":  ";
+	// std::cout << name << ":  ";
 	return;
 }
 
@@ -118,7 +119,7 @@ URDF::Link::Link(xml_node<> * link_node) : RobotElement(link_node) {
 	std::string mass_str =
 		inertial_ptr->first_node("mass")->first_attribute("value")->value();
 	mass_kg = std::stof(mass_str);
-	std::cout << "mass: " << mass_kg << std::endl;
+	// std::cout << "mass: " << mass_kg << std::endl;
 
 	inertia.i_xx_kgm2 = get_inertia(inertial_ptr, "ixx");
 	inertia.i_xy_kgm2 = get_inertia(inertial_ptr, "ixy");
@@ -145,10 +146,10 @@ URDF::Joint::Joint(xml_node<> * joint_node) : RobotElement(joint_node) {
 	ss >> joint_axis.x;
 	ss >> joint_axis.y;
 	ss >> joint_axis.z;
-	std::cout << "axis: "
-		<< joint_axis.x << ", "
-		<< joint_axis.y << ", "
-		<< joint_axis.z << std::endl;
+	// std::cout << "axis: "
+	// 	<< joint_axis.x << ", "
+	// 	<< joint_axis.y << ", "
+	// 	<< joint_axis.z << std::endl;
 
 	auto limit_ptr = joint_node->first_node("limit");
 	if (!limit_ptr) return;

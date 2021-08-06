@@ -28,6 +28,31 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
 	act_tibia_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
 	
 	leg_kinematics = LegKinematics(leg_urdf_);
+
+	std::vector<LegKinematics::Position> positions = 
+		{{-0.10,-0.20},
+		 { 0.00,-0.22},
+		 { 0.12,-0.15}};
+
+	std::cout << "testing kinematics... \n";
+
+	std::cout << "\n\ny_in, z_in, femur, tibia, p0_y, p0_z, p1_y, p1_z, "
+	 << "p21_y, p21_z, p22_y, p22_z, p31_y, p31_z, p32_y, p32_z\n";
+
+	for (auto& pos : positions) {
+		auto ja = leg_kinematics.ik_2link(pos);
+		auto pos_vec = leg_kinematics.fk_vec(ja);
+		std::cout
+			<< pos.y_m << ", " << pos.z_m << ", "
+			<< ja.femur_angle_rad << ", " << ja.tibia_angle_rad;
+
+		for (auto& jpos : pos_vec) {
+			std::cout
+			<< ", " << jpos.y_m << ", " << jpos.z_m;
+		}
+		std::cout << std::endl;
+		
+	}
 }
 
 void Leg::iterate_fsm() {
@@ -207,8 +232,6 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
   legset.replay_trq_scale = leg_opts["replay-trq-scale"].as<float>();
   return legset;
 }
-
-
 
 
 Leg::LegKinematics::LegKinematics(URDF& leg_urdf) {
