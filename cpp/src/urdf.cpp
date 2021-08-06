@@ -95,10 +95,10 @@ URDF::URDF(std::string path) : path_(path) {
 
 	// populate map dict
 	for (size_t ii = 0; ii < joints.size(); ii++)
-		elem_dict[joints[ii].name] = joints[ii];
+		joint_dict[joints[ii].name] = joints[ii];
 
 	for (size_t ii = 0; ii < links.size(); ii++)
-		elem_dict[links[ii].name] = links[ii];
+		link_dict[links[ii].name] = links[ii];
 
 	return;
 }

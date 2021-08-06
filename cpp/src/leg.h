@@ -78,7 +78,8 @@ public:
 			Jacobian operator-() {return {-J11, -J12, -J21, -J22};}
 		};
 		LegKinematics(URDF& leg_urdf);
-		
+		inline LegKinematics() {}
+
 		AlphaAngles joint2alpha(JointAngles angles);
 		JointAngles	alpha2joint(AlphaAngles angles);
 		std::vector<Position> fk_vec(JointAngles angles);
@@ -132,6 +133,8 @@ public:
 		act_femur_.retrieve_reply(prev_replies);
 		act_tibia_.retrieve_reply(prev_replies);
 	}
+
+	LegKinematics leg_kinematics;
 private:
 	Actuator act_femur_;
 	Actuator act_tibia_;

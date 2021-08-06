@@ -33,6 +33,7 @@ public :
 		};
 
 		RobotElement(rapidxml::xml_node<> * elem_node);
+		inline RobotElement() {}
 
 		inline virtual bool is_link() {return false;}
 		inline virtual bool is_joint() {return false;}
@@ -56,6 +57,7 @@ public :
 			float i_zz_kgm2 = 0;
 		};
 		Link(rapidxml::xml_node<> * link_node);
+		inline Link() {}
 		inline bool is_link() {return true;}
 		float mass_kg; //
 		Origin mass_origin; //
@@ -79,6 +81,7 @@ public :
 		};
 
 		Joint(rapidxml::xml_node<> * joint_node);
+		inline Joint() {}
 		inline bool is_joint() {return true;}
 		std::string parent_name; //
 		std::string child_name; //
@@ -100,7 +103,8 @@ public :
 	std::vector<std::reference_wrapper<RobotElement>> elems;
 	std::vector<Joint> joints;
 	std::vector<Link> links;
-	std::map<std::string, std::reference_wrapper<RobotElement>> elem_dict;
+	std::map<std::string, Joint> joint_dict;
+	std::map<std::string, Link> link_dict;
 
 private :
 

@@ -26,6 +26,8 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
   act_tibia_.zero_offset();
 	act_femur_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
 	act_tibia_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
+	
+	leg_kinematics = LegKinematics(leg_urdf_);
 }
 
 void Leg::iterate_fsm() {
@@ -210,13 +212,13 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
 
 
 Leg::LegKinematics::LegKinematics(URDF& leg_urdf) {
-	l1_ = fabs(leg_urdf.elem_dict["knee_joint"].get().joint_origin.z_m);
+	l1_ = fabs(leg_urdf.joint_dict[std::string("knee_joint")].joint_origin.z_m);
 
-	l2_pll_ = fabs(leg_urdf.elem_dict["ankle_joint"].get().joint_origin.z_m);
-	l2_perp_ = fabs(leg_urdf.elem_dict["ankle_joint"].get().joint_origin.y_m);
+	l2_pll_ = fabs(leg_urdf.joint_dict[std::string("ankle_joint")].joint_origin.z_m);
+	l2_perp_ = fabs(leg_urdf.joint_dict[std::string("ankle_joint")].joint_origin.y_m);
 
-	l3_pll_ = fabs(leg_urdf.elem_dict["tibia_foot_joint"].get().joint_origin.y_m);
-	l3_perp_ = fabs(leg_urdf.elem_dict["tibia_foot_joint"].get().joint_origin.z_m);
+	l3_pll_ = fabs(leg_urdf.joint_dict[std::string("tibia_foot_joint")].joint_origin.y_m);
+	l3_perp_ = fabs(leg_urdf.joint_dict[std::string("tibia_foot_joint")].joint_origin.z_m);
 	
 	r1_ = std::sqrt( (l1_ + l3_perp_)*(l1_ + l3_perp_) + l3_pll_*l3_pll_);
 	r2_ = std::sqrt( (l2_perp_)*(l2_perp_) + l2_pll_*l2_pll_);
