@@ -55,7 +55,7 @@ void Leg::iterate_fsm() {
 	// if (((int)time_prog_s_)%2) next_state_ = FSMState::kIdle;
 	// else next_state_ = FSMState::kRunning;
 
-	if (time_prog_s_ > 0.1) next_state_ = FSMState::kRunning;
+	if (time_prog_s_ > 2.0) next_state_ = FSMState::kRunning;
 
 	switch (curr_state_) {
 		case FSMState::kIdle: {

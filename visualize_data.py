@@ -198,11 +198,11 @@ def main() :
                             data[label].astype(float), cutoff, fs, order)
                     
                     ratio = 1
-                    if label.find("torque") > -1\
-                        and (label.find("c1") > -1\
-                        or label.find("c2") > -1):
+                    # if label.find("torque") > -1\
+                    #     and (label.find("c1") > -1\
+                    #     or label.find("c2") > -1):
 
-                        ratio = gear_ratio
+                    #     ratio = gear_ratio
                     if filt_s: label += ", filtered"
                     if scatter: ax.scatter(xseries, ratio*series, label=label, s=1)
                     else: 
