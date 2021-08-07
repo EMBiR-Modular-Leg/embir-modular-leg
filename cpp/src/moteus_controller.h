@@ -51,6 +51,7 @@ public:
 	void make_mot_velocity(float vel_Hz, float kps=1, float kds=1,
 		float ff_trq_Nm=0);
 	void make_mot_torque(float trq_Nm);
+	void make_mot_full_pos(float pos_rot, float vel_Hz, float trq_Nm,  float kps=1, float kds=1);
 	
 	void retrieve_reply(
 		std::vector<mjbots::moteus::Pi3HatMoteusInterface::ServoReply>& replies);

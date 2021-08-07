@@ -25,6 +25,13 @@ public:
 	inline void make_act_torque(float trq_Nm) {
 		make_mot_torque(trq_Nm/(trq_efficiency_));
 	}
+	inline void make_act_full_pos(float pos_rad, float vel_rad_s, float trq_Nm) {
+		make_mot_full_pos(
+			pos_rad/(2*PI),
+			vel_rad_s/(2*PI),
+			trq_Nm/(trq_efficiency_),
+			kp_, kd_);
+	}
 
 	std::string stringify_actuator();
 	std::string stringify_actuator_header();

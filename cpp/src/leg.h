@@ -15,9 +15,10 @@
 class Leg {
 public:
 
+	// low level "gate" allowing the leg to operate
 	enum FSMState : uint8_t {
 		kIdle,
-		kRunning,
+		kRunning, // allow other actions to happen, depending on ActionMode
 		kRecovery,
 		kQuitting,
 	};
@@ -27,6 +28,7 @@ public:
 		kSafeZoneTest,
 		kStand,
 		kCyclicCrouch,
+		kTorquePlayback,
 		kJump,
 	};
 
@@ -50,6 +52,9 @@ public:
 
 		float replay_vel_scale;
 		float replay_trq_scale;
+
+		ActionMode action_mode;
+		float action_delay;
 	};
 
 	struct CyclicCrouchSettings {
@@ -110,6 +115,8 @@ public:
 		Jacobian jacobian_alpha(AlphaAngles angles);
 		Jacobian jacobian_joint(JointAngles angles);
 
+		JointAngles task2joint(Position task, JointAngles angles);
+		// JointAngles task2joint(Position& task, JointAngles& angles);
 
 	private:
 		float l1_, l2_pll_, l2_perp_, l3_pll_, l3_perp_, r1_, r2_, gamma1_, gamma2_;

@@ -122,6 +122,19 @@ void MoteusController::make_mot_torque(float trq_Nm) {
 	curr_cmd_.position.feedforward_torque = trq_Nm;
 }
 
+void MoteusController::make_mot_full_pos(float pos_rot, float vel_Hz,
+	float trq_Nm, float kps, float kds) {
+	if (fault() != errc::kSuccess) {make_stop(); return;}
+	curr_cmd_.id = id_;
+	curr_cmd_.mode = moteus::Mode::kPosition;
+	curr_cmd_.position.kp_scale = kps;
+	curr_cmd_.position.kd_scale = kds;
+	curr_cmd_.position.position = pos_rot;
+	curr_cmd_.position.velocity = vel_Hz;
+	curr_cmd_.position.feedforward_torque = trq_Nm;
+}
+
+
 void MoteusController::retrieve_reply(std::vector<MoteusInterface::ServoReply>& replies) {
 	if(replies.size() < 2) std::cout << "incorrect number of replies: " << replies.size() << std::endl;
 	for (auto reply : replies) {

@@ -34,6 +34,8 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
   std::ifstream cyclic_crouch_if("configs/cyclic_crouch.json");
   cyclic_crouch_if >> cyclic_crouch_j;
 	cyclic_crouch_s = CyclicCrouchSettings(cyclic_crouch_j);
+
+	action_mode_ = legset_.action_mode;
 }
 
 void Leg::iterate_fsm() {
@@ -55,7 +57,7 @@ void Leg::iterate_fsm() {
 	// if (((int)time_prog_s_)%2) next_state_ = FSMState::kIdle;
 	// else next_state_ = FSMState::kRunning;
 
-	if (time_prog_s_ > 2.0) next_state_ = FSMState::kRunning;
+	if (time_prog_s_ > legset_.action_delay) next_state_ = FSMState::kRunning;
 
 	switch (curr_state_) {
 		case FSMState::kIdle: {
@@ -65,12 +67,6 @@ void Leg::iterate_fsm() {
 		case FSMState::kRunning: {
 			// ***TODO***: Implement your operation here
 			// feel free to expand into multiple states
-			// act_femur_.make_stop();
-			// act_tibia_.make_stop();
-			// act_femur_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
-			act_femur_.make_act_position(0.8*2*PI*std::sin(4*time_fcn_s_), 0);
-			// act_tibia_.make_act_velocity(4.0*std::sin(time_fcn_s_), 0);
-			act_tibia_.make_act_position(0.8*2*PI*std::sin(4*time_fcn_s_), 0);
 
 			run_action();
 			break;}
@@ -189,6 +185,10 @@ cxxopts::Options leg_opts() {
     ("frequency", "test sampling and command frequency in Hz", 
 			cxxopts::value<float>()->default_value("250"))
     ("skip-cal", "skip recalibration")
+    ("action-mode", "choose between [none|cyclic-crouch]",
+			cxxopts::value<std::string>()->default_value("none"))
+		("action-delay", "delay start of action", 
+			cxxopts::value<float>()->default_value("2"))
     ("h,help", "Print usage")
   ;
 
@@ -213,6 +213,23 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
 
   legset.replay_vel_scale = leg_opts["replay-vel-scale"].as<float>();
   legset.replay_trq_scale = leg_opts["replay-trq-scale"].as<float>();
+
+	auto test_str = leg_opts["action-mode"].as<std::string>();
+  // case invariance -- convert to user input to lowercase
+  std::transform(test_str.begin(), test_str.end(), test_str.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+
+  // std::cout << test_str << (test_str == std::string("TV-sweep")) << std::endl;
+  if (test_str == std::string("none")) legset.action_mode = Leg::ActionMode::kNone;
+  else if (test_str == std::string("cyclic-crouch")) legset.action_mode = Leg::ActionMode::kCyclicCrouch;
+  else {
+    legset.action_mode = Leg::ActionMode::kNone;
+    std::cout << "no test mode selected (input was \"" << test_str << "\")." << std::endl;
+  }
+  std::cout << "test mode \"" << test_str << "\" selected" << std::endl;
+
+  legset.action_delay = leg_opts["action-delay"].as<float>();
+
   return legset;
 }
 
@@ -236,8 +253,17 @@ void Leg::run_action() {
 			LegKinematics::Position foot_pos = {0,z};
 			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
 
-			act_femur_.make_act_position(joint_angles.femur_angle_rad, 0);
-			act_tibia_.make_act_position(joint_angles.tibia_angle_rad, 0);
+			float dzdt = cyclic_crouch_s.amplitude_m
+				*2*PI*cyclic_crouch_s.frequency_Hz
+				*std::cos(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_);
+
+			LegKinematics::Position foot_vel = {0,dzdt};
+			auto joint_vels = leg_kinematics.task2joint(foot_vel, joint_angles); 
+
+			act_femur_.make_act_full_pos(
+				joint_angles.femur_angle_rad, joint_vels.femur_angle_rad, 0);
+			act_tibia_.make_act_full_pos(
+				joint_angles.tibia_angle_rad, joint_vels.tibia_angle_rad, 0);
 
 			// std::cout << "leaving kCyclicCrouch" << std::endl;
 			break;}
@@ -364,3 +390,19 @@ Leg::LegKinematics::jacobian_joint(Leg::LegKinematics::JointAngles angles) {
 	auto alpha = joint2alpha({angles.femur_angle_rad, angles.tibia_angle_rad});
 	return -jacobian_alpha(alpha);
 }
+
+Leg::LegKinematics::JointAngles Leg::LegKinematics::task2joint(
+	Leg::LegKinematics::Position task, Leg::LegKinematics::JointAngles angles) {
+	
+	auto J = jacobian_joint(angles);
+	float det = ( J.J11*J.J22 - J.J12*J.J21 );
+	if (fabs(det) < 0.001) 
+		std::cerr << "non invertible jacobian!!" << std::endl;
+	
+	return {( J.J22*task.y_m - J.J12*task.z_m)/det,
+					(-J.J21*task.y_m + J.J11*task.z_m)/det};
+}
+// Leg::LegKinematics::JointAngles Leg::LegKinematics::task2joint(
+// 	Leg::LegKinematics::Position& task, Leg::LegKinematics::JointAngles& angles) {
+// 	return task2joint(task, jacobian_joint(angles));
+// }
