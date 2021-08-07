@@ -9,6 +9,8 @@
 #include "urdf.h"
 
 #include "cxxopts/cxxopts.hpp"
+#include "nlohmann/json.hpp"
+
 
 class Leg {
 public:
@@ -48,6 +50,18 @@ public:
 
 		float replay_vel_scale;
 		float replay_trq_scale;
+	};
+
+	struct CyclicCrouchSettings {
+		float center_m = 0;
+		float amplitude_m = 0;
+		float frequency_Hz = 0;
+		inline CyclicCrouchSettings() {}
+		inline CyclicCrouchSettings(nlohmann::json cyclic_crouch_j) {
+			center_m = cyclic_crouch_j["center_m"];
+			amplitude_m = cyclic_crouch_j["amplitude_m"];
+			frequency_Hz = cyclic_crouch_j["frequency_Hz"];
+		}
 	};
 
 	class LegKinematics {
@@ -186,6 +200,10 @@ private:
 
 	URDF leg_urdf_;
 	ActionMode action_mode_ = ActionMode::kCyclicCrouch;
+
+  nlohmann::json cyclic_crouch_j;
+	CyclicCrouchSettings cyclic_crouch_s;
+
 
 	void run_action();
 };

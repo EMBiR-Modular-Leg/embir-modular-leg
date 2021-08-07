@@ -40,6 +40,8 @@ def main() :
     data = pd.read_csv(args.filename, comment='#', header=0)
     kin = Kinematics(l3_pll_in=18, l3_perp_in=135)
 
+    num_rows = len(data.index)
+
     if args.kinematics :
         cmd_fk = kin.fk_vec(data["a1 position cmd [rad]"].astype(float), data["a2 position cmd [rad]"].astype(float))
         res_fk = kin.fk_vec(data["a1 position [rad]"].astype(float), data["a2 position [rad]"].astype(float))
@@ -49,6 +51,24 @@ def main() :
 
         data["res y [m]"] = res_fk[-1,-2,:]/1000
         data["res z [m]"] = res_fk[-1,-1,:]/1000
+
+        fig, ax = plt.subplots()
+
+        start = 0.0
+        stop = 1.0
+        cm_subsection = linspace(start, stop, num_rows) 
+        colors = [ cm.viridis(x) for x in cm_subsection ]
+
+        cc = 0
+        for jj in range(20,num_rows, num_rows // 12) :
+            y_pts = res_fk[:,0,jj] + cc*200
+            z_pts = res_fk[:,1,jj]
+            ax.plot(y_pts, z_pts, 'o-',color=colors[jj])
+            cc += 1
+        
+        ax.plot(np.linspace(0, (cc*200), num_rows), 1000*data["res z [m]"])
+        ax.set_aspect(1)
+        plt.show()
 
     # if args.outlier is not None:
         # import ipdb; ipdb.set_trace()

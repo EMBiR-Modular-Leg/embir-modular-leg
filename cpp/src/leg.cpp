@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <cmath>
+#include <fstream>
 
 #include "leg.h"
 #include "color.h"
@@ -29,30 +30,10 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
 	
 	leg_kinematics = LegKinematics(leg_urdf_);
 
-	std::vector<LegKinematics::Position> positions = 
-		{{-0.10,-0.20},
-		 { 0.00,-0.22},
-		 { 0.12,-0.15}};
-
-	std::cout << "testing kinematics... \n";
-
-	std::cout << "\n\ny_in, z_in, femur, tibia, p0_y, p0_z, p1_y, p1_z, "
-	 << "p21_y, p21_z, p22_y, p22_z, p31_y, p31_z, p32_y, p32_z\n";
-
-	for (auto& pos : positions) {
-		auto ja = leg_kinematics.ik_2link(pos);
-		auto pos_vec = leg_kinematics.fk_vec(ja);
-		std::cout
-			<< pos.y_m << ", " << pos.z_m << ", "
-			<< ja.femur_angle_rad << ", " << ja.tibia_angle_rad;
-
-		for (auto& jpos : pos_vec) {
-			std::cout
-			<< ", " << jpos.y_m << ", " << jpos.z_m;
-		}
-		std::cout << std::endl;
-		
-	}
+	std::cout << "loading configs... \n";
+  std::ifstream cyclic_crouch_if("configs/cyclic_crouch.json");
+  cyclic_crouch_if >> cyclic_crouch_j;
+	cyclic_crouch_s = CyclicCrouchSettings(cyclic_crouch_j);
 }
 
 void Leg::iterate_fsm() {
@@ -249,9 +230,9 @@ void Leg::run_action() {
 			break;}
 		case ActionMode::kCyclicCrouch: {
 			// std::cout << "in kCyclicCrouch" << std::endl;
-			float ampl_m = 0.05;
-			float center_m = -0.2;
-			float z = ampl_m*std::sin(time_fcn_s_) + center_m;
+			float z = cyclic_crouch_s.amplitude_m
+				*std::sin(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_) 
+				+ cyclic_crouch_s.center_m;
 			LegKinematics::Position foot_pos = {0,z};
 			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
 

@@ -50,7 +50,7 @@ void MoteusController::restore_cal(std::string path) {
 	std::string command = "python3 -m moteus.moteus_tool --target " +
 		id_str + " --pi3hat-cfg '" + bus_str + "=" + id_str +
 		"' --restore-cal " + path;
-	std::cout << "restoring calibration to id " << id_str << "from " <<
+	std::cout << "restoring calibration to id " << id_str << " from " <<
 		path << "...\n" << command;
 	system(command.c_str());
 	std::cout << "    done. " << std::endl;
