@@ -158,7 +158,7 @@ std::string MoteusController::stringify_moteus_reply() {
   sprintf(cstr_buffer, "%2d,% -f,% -f,",
     data.mode, data.position, data.velocity);
   result << cstr_buffer;
-  sprintf(cstr_buffer, "% -f,% -f,%2d",
+  sprintf(cstr_buffer, "% -f,% -f,%3d",
     data.torque, data.temperature, (int)fault_code_);
   result << cstr_buffer;
   return result.str();

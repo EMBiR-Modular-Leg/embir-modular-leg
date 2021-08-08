@@ -72,13 +72,11 @@
         of the array is then 2n.
 */
 
-double *binomial_mult( int n, double *p )
+std::vector<double> binomial_mult( int n, std::vector<double> p )
 {
     int i, j;
-    double *a;
-
-    a = (double *)calloc( 2 * n, sizeof(double) );
-    if( a == NULL ) return( NULL );
+    std::vector<double> a;
+    a.resize(2*n);
 
     for( i = 0; i < n; ++i )
     {
@@ -125,13 +123,11 @@ double *binomial_mult( int n, double *p )
   c  -  Pointer to an array of doubles of length 2n.
 */
 
-double *trinomial_mult( int n, double *b, double *c )
+std::vector<double> trinomial_mult( int n, std::vector<double> b, std::vector<double> c )
 {
     int i, j;
-    double *a;
-
-    a = (double *)calloc( 4 * n, sizeof(double) );
-    if( a == NULL ) return( NULL );
+    std::vector<double> a;
+    a.resize(4*n);
 
     a[2] = c[0];
     a[3] = c[1];
@@ -167,7 +163,7 @@ double *trinomial_mult( int n, double *b, double *c )
 
 */
 
-double *dcof_bwlp( int n, double fcf )
+std::vector<double> dcof_bwlp( int n, double fcf )
 {
     int k;            // loop variables
     double theta;     // M_PI * fcf / 2.0
@@ -177,11 +173,10 @@ double *dcof_bwlp( int n, double fcf )
     double sparg;     // sine of the pole angle
     double cparg;     // cosine of the pole angle
     double a;         // workspace variable
-    double *rcof;     // binomial coefficients
-    double *dcof;     // dk coefficients
+    std::vector<double> rcof;     // binomial coefficients
+    std::vector<double> dcof;     // dk coefficients
 
-    rcof = (double *)calloc( 2 * n, sizeof(double) );
-    if( rcof == NULL ) return( NULL );
+    rcof.resize(2*n+1);
 
     theta = M_PI * fcf;
     st = sin(theta);
@@ -198,7 +193,7 @@ double *dcof_bwlp( int n, double fcf )
     }
 
     dcof = binomial_mult( n, rcof );
-    free( rcof );
+    // free( rcof );
 
     dcof[1] = dcof[0];
     dcof[0] = 1.0;
@@ -213,7 +208,7 @@ double *dcof_bwlp( int n, double fcf )
 
 */
 
-double *dcof_bwhp( int n, double fcf )
+std::vector<double> dcof_bwhp( int n, double fcf )
 {
     return( dcof_bwlp( n, fcf ) );
 }
@@ -225,7 +220,7 @@ double *dcof_bwhp( int n, double fcf )
 
 */
 
-double *dcof_bwbp( int n, double f1f, double f2f )
+std::vector<double> dcof_bwbp( int n, double f1f, double f2f )
 {
     int k;            // loop variables
     double theta;     // M_PI * (f2f - f1f) / 2.0
@@ -234,9 +229,9 @@ double *dcof_bwbp( int n, double f1f, double f2f )
     double ct;        // cosine of theta
     double s2t;       // sine of 2*theta
     double c2t;       // cosine 0f 2*theta
-    double *rcof;     // z^-2 coefficients
-    double *tcof;     // z^-1 coefficients
-    double *dcof;     // dk coefficients
+    std::vector<double> rcof;     // z^-2 coefficients
+    std::vector<double> tcof;     // z^-1 coefficients
+    std::vector<double> dcof;     // dk coefficients
     double parg;      // pole angle
     double sparg;     // sine of pole angle
     double cparg;     // cosine of pole angle
@@ -249,8 +244,8 @@ double *dcof_bwbp( int n, double f1f, double f2f )
     s2t = 2.0*st*ct;        // sine of 2*theta
     c2t = 2.0*ct*ct - 1.0;  // cosine of 2*theta
 
-    rcof = (double *)calloc( 2 * n, sizeof(double) );
-    tcof = (double *)calloc( 2 * n, sizeof(double) );
+    rcof.resize(2*n);
+    tcof.resize(2*n);
 
     for( k = 0; k < n; ++k )
     {
@@ -265,8 +260,8 @@ double *dcof_bwbp( int n, double f1f, double f2f )
     }
 
     dcof = trinomial_mult( n, tcof, rcof );
-    free( tcof );
-    free( rcof );
+    // free( tcof );
+    // free( rcof );
 
     dcof[1] = dcof[0];
     dcof[0] = 1.0;
@@ -281,7 +276,7 @@ double *dcof_bwbp( int n, double f1f, double f2f )
 
 */
 
-double *dcof_bwbs( int n, double f1f, double f2f )
+std::vector<double> dcof_bwbs( int n, double f1f, double f2f )
 {
     int k;            // loop variables
     double theta;     // M_PI * (f2f - f1f) / 2.0
@@ -290,9 +285,9 @@ double *dcof_bwbs( int n, double f1f, double f2f )
     double ct;        // cosine of theta
     double s2t;       // sine of 2*theta
     double c2t;       // cosine 0f 2*theta
-    double *rcof;     // z^-2 coefficients
-    double *tcof;     // z^-1 coefficients
-    double *dcof;     // dk coefficients
+    std::vector<double> rcof;     // z^-2 coefficients
+    std::vector<double> tcof;     // z^-1 coefficients
+    std::vector<double> dcof;     // dk coefficients
     double parg;      // pole angle
     double sparg;     // sine of pole angle
     double cparg;     // cosine of pole angle
@@ -305,8 +300,8 @@ double *dcof_bwbs( int n, double f1f, double f2f )
     s2t = 2.0*st*ct;        // sine of 2*theta
     c2t = 2.0*ct*ct - 1.0;  // cosine 0f 2*theta
 
-    rcof = (double *)calloc( 2 * n, sizeof(double) );
-    tcof = (double *)calloc( 2 * n, sizeof(double) );  
+    rcof.resize(2*n);
+    tcof.resize(2*n);
 
     for( k = 0; k < n; ++k )
     {
@@ -321,8 +316,8 @@ double *dcof_bwbs( int n, double f1f, double f2f )
     }
 
     dcof = trinomial_mult( n, tcof, rcof );
-    free( tcof );
-    free( rcof );
+    // free( tcof );
+    // free( rcof );
 
     dcof[1] = dcof[0];
     dcof[0] = 1.0;
@@ -337,14 +332,15 @@ double *dcof_bwbs( int n, double f1f, double f2f )
 
 */
 
-int *ccof_bwlp( int n )
+std::vector<int> ccof_bwlp( int n )
 {
-    int *ccof;
+    std::vector<int> ccof;
     int m;
     int i;
 
-    ccof = (int *)calloc( n+1, sizeof(int) );
-    if( ccof == NULL ) return( NULL );
+    // ccof = (std::vector<int> )calloc( n+1, sizeof(int) );
+    // if( ccof == NULL ) return( NULL );
+    ccof.resize(n+1);
 
     ccof[0] = 1;
     ccof[1] = n;
@@ -366,13 +362,13 @@ int *ccof_bwlp( int n )
 
 */
 
-int *ccof_bwhp( int n )
+std::vector<int> ccof_bwhp( int n )
 {
-    int *ccof;
+    std::vector<int> ccof;
     int i;
 
     ccof = ccof_bwlp( n );
-    if( ccof == NULL ) return( NULL );
+    // if( ccof == NULL ) return( NULL );
 
     for( i = 0; i <= n; ++i)
         if( i % 2 ) ccof[i] = -ccof[i];
@@ -386,17 +382,18 @@ int *ccof_bwhp( int n )
 
 */
 
-int *ccof_bwbp( int n )
+std::vector<int> ccof_bwbp( int n )
 {
-    int *tcof;
-    int *ccof;
+    std::vector<int> tcof;
+    std::vector<int> ccof;
     int i;
 
-    ccof = (int *)calloc( 2*n+1, sizeof(int) );
-    if( ccof == NULL ) return( NULL );
+    // ccof = (std::vector<int> )calloc( 2*n+1, sizeof(int) );
+    // if( ccof == NULL ) return( NULL );
+    ccof.resize(2*n+1);
 
     tcof = ccof_bwhp(n);
-    if( tcof == NULL ) return( NULL );
+    // if( tcof == NULL ) return( NULL );
 
     for( i = 0; i < n; ++i)
     {
@@ -405,7 +402,7 @@ int *ccof_bwbp( int n )
     }
     ccof[2*n] = tcof[n];
 
-    free( tcof );
+    // free( tcof );
     return( ccof );
 }
 
@@ -415,15 +412,16 @@ int *ccof_bwbp( int n )
 
 */
 
-double *ccof_bwbs( int n, double f1f, double f2f )
+std::vector<double> ccof_bwbs( int n, double f1f, double f2f )
 {
     double alpha;
-    double *ccof;
+    std::vector<double> ccof;
     int i, j;
 
     alpha = -2.0 * cos(M_PI * (f2f + f1f) / 2.0) / cos(M_PI * (f2f - f1f) / 2.0);
 
-    ccof = (double *)calloc( 2*n+1, sizeof(double) );
+    // ccof = (std::vector<double> )calloc( 2*n+1, sizeof(double) );
+    ccof.resize(2*n+1);
 
     ccof[0] = 1.0;
 

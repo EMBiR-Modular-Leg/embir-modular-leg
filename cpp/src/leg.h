@@ -7,6 +7,7 @@
 
 #include "actuator.h"
 #include "urdf.h"
+#include "utils.h"
 
 #include "cxxopts/cxxopts.hpp"
 #include "nlohmann/json.hpp"
@@ -53,8 +54,14 @@ public:
 		float replay_vel_scale;
 		float replay_trq_scale;
 
+		int lpf_order;
+		float lpf_cutoff_freq_Hz;
+
 		ActionMode action_mode;
 		float action_delay;
+
+		std::string playback_file;
+		float playback_delay;
 	};
 
 	struct CyclicCrouchSettings {
@@ -211,11 +218,19 @@ private:
   nlohmann::json cyclic_crouch_j;
 	CyclicCrouchSettings cyclic_crouch_s;
 
+	LowPassFilter lpf_femur_;
+	LowPassFilter lpf_tibia_;
+
+	std::vector<float> femur_trq;
+	std::vector<float> tibia_trq;
+	size_t playback_idx = 0;
+
+	void setup_playback();
 
 	void run_action();
 };
 
 cxxopts::Options leg_opts();
-Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts);
+Leg::LegSettings parse_settings(cxxopts::ParseResult& leg_opts);
 
 #endif

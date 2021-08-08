@@ -1,9 +1,12 @@
 #include <iomanip>
 #include <cmath>
 #include <fstream>
+#include <algorithm>
+#include <utility>
 
 #include "leg.h"
 #include "color.h"
+#include "rapidcsv/rapidcsv.h"
 
 namespace chron = std::chrono;
 
@@ -21,8 +24,13 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
 	datastream_(datastream),
 	legset_(legset),
 	commands_(),
-	leg_urdf_(urdf_file) {
-	
+	leg_urdf_(urdf_file),
+	lpf_femur_(legset.lpf_order, legset.lpf_cutoff_freq_Hz, legset.period_s),
+	lpf_tibia_(legset.lpf_order, legset.lpf_cutoff_freq_Hz, legset.period_s) {
+		
+	action_mode_ = legset_.action_mode;
+	if (legset_.playback_file != "") setup_playback();
+
 	act_femur_.zero_offset();
   act_tibia_.zero_offset();
 	act_femur_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
@@ -34,8 +42,93 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
   std::ifstream cyclic_crouch_if("configs/cyclic_crouch.json");
   cyclic_crouch_if >> cyclic_crouch_j;
 	cyclic_crouch_s = CyclicCrouchSettings(cyclic_crouch_j);
+}
 
-	action_mode_ = legset_.action_mode;
+void Leg::setup_playback() {
+	std::cout
+		<< "loading playback file from " << legset_.playback_file << std::endl;
+	rapidcsv::Document doc(legset_.playback_file,
+		rapidcsv::LabelParams(),
+		rapidcsv::SeparatorParams(',',
+															true),
+		rapidcsv::ConverterParams(false,
+															std::numeric_limits<float>::quiet_NaN(),
+															0),
+		rapidcsv::LineReaderParams(true /* pSkipCommentLines */,
+															'#' /* pCommentPrefix */,
+															true /* pSkipEmptyLines */));
+
+	std::vector<std::string> columnNames = doc.GetColumnNames();
+	for (auto& name : columnNames) std::cout << name << "\n";
+	std::cout << columnNames.size() << " columns\n";
+  std::vector<float> time = doc.GetColumn<float>("time [s]");
+	std::cout << time.size() << " lines" << std::endl;
+	size_t delay_idx = std::upper_bound (
+		time.begin(), time.end(), legset_.playback_delay) - time.begin();
+	
+	// grab columns and erase elements before delay_idx
+  femur_trq = doc.GetColumn<float>("a1 torque [Nm]");
+	std::vector<float>(femur_trq.begin()+delay_idx, femur_trq.end()).swap(femur_trq);
+  std::cout << "here" << std::endl;
+	tibia_trq = doc.GetColumn<float>("a2 torque [Nm]");
+	std::vector<float>(tibia_trq.begin()+delay_idx, tibia_trq.end()).swap(tibia_trq);
+
+	// pad values for filtering
+	std::cout << "padding values for filtering..." << std::endl;
+	for (size_t ii = 0; ii < legset_.lpf_order; ii++) {
+		femur_trq.push_back(femur_trq.back());
+		femur_trq.insert(femur_trq.begin(), femur_trq.front());
+		tibia_trq.push_back(tibia_trq.back());
+		tibia_trq.insert(tibia_trq.begin(), tibia_trq.front());
+	}
+	size_t data_length = femur_trq.size();
+	// take care of nans
+	std::cout << "using " << data_length << " lines, taking care of nans...\n";
+	for (size_t ii = 0; ii < data_length; ii++) {
+		if (std::isnan(femur_trq[ii]))
+			femur_trq[ii] = (ii == 0) ? 0 : femur_trq[ii-1];
+		if (std::isnan(tibia_trq[ii]))
+			tibia_trq[ii] = (ii == 0) ? 0 : tibia_trq[ii-1];
+	}
+	data_length = femur_trq.size();
+	std::vector<float> femur_trq_temp; femur_trq_temp.reserve(data_length);
+	std::vector<float> tibia_trq_temp; tibia_trq_temp.reserve(data_length);
+	std::cout << "filtering playback data..." << std::endl;
+
+	for (size_t ii = 0; ii < data_length; ii++) {
+		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq[ii]);
+		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq[ii]);
+	}
+	lpf_femur_.flush_buffers();
+	lpf_tibia_.flush_buffers();
+	// filter backwards to eliminate phase lag
+	for (size_t ii = data_length-1; ii >= 0; ii--) {
+		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq[ii]);
+		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq[ii]);
+	}
+	// testing 
+	std::ofstream data_file("filtering_test.csv");
+	data_file << "femur in, tibia in, femur out, tibia out\n";
+	for (size_t ii = 0; ii < femur_trq.size(); ii++)
+		data_file
+			<< femur_trq[ii] << ", "
+			<< tibia_trq[ii] << ", "
+			<< femur_trq_temp[ii] << ", "
+			<< tibia_trq_temp[ii] << "\n";
+	data_file.flush();
+
+	// cut off padded elements
+	std::vector<float>(
+		femur_trq_temp.begin()+legset_.lpf_order,
+		femur_trq_temp.end()-legset_.lpf_order).swap(femur_trq_temp);
+	std::vector<float>(
+		tibia_trq_temp.begin()+legset_.lpf_order,
+		tibia_trq_temp.end()-legset_.lpf_order).swap(tibia_trq_temp);
+
+
+	//swap filtered data into vectors
+	std::swap(femur_trq_temp, femur_trq);
+	std::swap(tibia_trq_temp, tibia_trq);
 }
 
 void Leg::iterate_fsm() {
@@ -113,7 +206,9 @@ void Leg::log_data() {
 		<< act_femur_.stringify_moteus_reply() << ","
     << act_tibia_.stringify_actuator() << ","
     << act_tibia_.stringify_moteus_reply() << ","
-		<< (int)curr_state_ << "\n";
+		<< (int)curr_state_ << ","
+		<< femur_trq[playback_idx] <<","
+		<< tibia_trq[playback_idx] <<"\n";
 	
 	return;
 }
@@ -124,7 +219,7 @@ void Leg::log_headers() {
 		<< act_femur_.stringify_moteus_reply_header() << ","
     << act_tibia_.stringify_actuator_header() << ","
     << act_tibia_.stringify_moteus_reply_header() << ","
-		<< "leg fsm state\n";
+		<< "leg fsm state, femur playback torque [Nm], tibia playback torque [Nm]\n";
 	
 	return;
 }
@@ -161,12 +256,18 @@ cxxopts::Options leg_opts() {
     ("p,path", "path to output csv.",
 			cxxopts::value<std::string>()->default_value(
 				"/home/pi/embir-modular-leg/dynamometer-data/"))
-    ("replay-file", "path to csv of torque, velocity data to replay.", 
+    ("playback-file", "path to csv of torque, velocity data to replay.", 
 			cxxopts::value<std::string>()->default_value(""))
+		("playback-delay", "jump into playback file after <delay> seconds", 
+			cxxopts::value<float>()->default_value("1.0"))
     ("replay-vel-scale", "scale velocity from replay data", 
 			cxxopts::value<float>()->default_value("1.0"))
     ("replay-trq-scale", "scale torque from replay data",
 			cxxopts::value<float>()->default_value("1.0"))
+		("lowpass-order", "butterworth lowpass filter order",
+			cxxopts::value<int>()->default_value("5"))
+		("lowpass-cutoff-frequency", "butterworth lowpass filter cutoff",
+			cxxopts::value<float>()->default_value("50"))
     ("gear-femur", "gear ratio of femur actuator, as a reduction", 
 			cxxopts::value<float>()->default_value("1.0"))
     ("gear-tibia", "gear ratio of tibia actuator, as a reduction",	
@@ -185,7 +286,7 @@ cxxopts::Options leg_opts() {
     ("frequency", "test sampling and command frequency in Hz", 
 			cxxopts::value<float>()->default_value("250"))
     ("skip-cal", "skip recalibration")
-    ("action-mode", "choose between [none|cyclic-crouch]",
+    ("action-mode", "choose between [none|cyclic-crouch|torque-playback]",
 			cxxopts::value<std::string>()->default_value("none"))
 		("action-delay", "delay start of action", 
 			cxxopts::value<float>()->default_value("2"))
@@ -196,7 +297,7 @@ cxxopts::Options leg_opts() {
   return options;
 }
 
-Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
+Leg::LegSettings parse_settings(cxxopts::ParseResult& leg_opts) {
   Leg::LegSettings legset;
   legset.leg_opts = leg_opts;
   legset.period_s = 1.0/leg_opts["frequency"].as<float>();
@@ -214,6 +315,12 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
   legset.replay_vel_scale = leg_opts["replay-vel-scale"].as<float>();
   legset.replay_trq_scale = leg_opts["replay-trq-scale"].as<float>();
 
+  legset.lpf_order = leg_opts["lowpass-order"].as<int>();
+  legset.lpf_cutoff_freq_Hz = leg_opts["lowpass-cutoff-frequency"].as<float>();
+
+  legset.playback_file = leg_opts["playback-file"].as<std::string>();
+  legset.playback_delay = leg_opts["playback-delay"].as<float>();
+
 	auto test_str = leg_opts["action-mode"].as<std::string>();
   // case invariance -- convert to user input to lowercase
   std::transform(test_str.begin(), test_str.end(), test_str.begin(),
@@ -222,6 +329,7 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult leg_opts) {
   // std::cout << test_str << (test_str == std::string("TV-sweep")) << std::endl;
   if (test_str == std::string("none")) legset.action_mode = Leg::ActionMode::kNone;
   else if (test_str == std::string("cyclic-crouch")) legset.action_mode = Leg::ActionMode::kCyclicCrouch;
+  else if (test_str == std::string("torque-playback")) legset.action_mode = Leg::ActionMode::kTorquePlayback;
   else {
     legset.action_mode = Leg::ActionMode::kNone;
     std::cout << "no test mode selected (input was \"" << test_str << "\")." << std::endl;
