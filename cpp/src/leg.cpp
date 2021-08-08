@@ -267,6 +267,28 @@ void Leg::run_action() {
 
 			// std::cout << "leaving kCyclicCrouch" << std::endl;
 			break;}
+		case ActionMode::kTorquePlayback: {
+			// std::cout << "in kCyclicCrouch" << std::endl;
+			float z = cyclic_crouch_s.amplitude_m
+				*std::sin(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_) 
+				+ cyclic_crouch_s.center_m;
+			LegKinematics::Position foot_pos = {0,z};
+			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
+
+			float dzdt = cyclic_crouch_s.amplitude_m
+				*2*PI*cyclic_crouch_s.frequency_Hz
+				*std::cos(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_);
+
+			LegKinematics::Position foot_vel = {0,dzdt};
+			auto joint_vels = leg_kinematics.task2joint(foot_vel, joint_angles); 
+
+			act_femur_.make_act_full_pos(
+				joint_angles.femur_angle_rad, joint_vels.femur_angle_rad, 0);
+			act_tibia_.make_act_full_pos(
+				joint_angles.tibia_angle_rad, joint_vels.tibia_angle_rad, 0);
+
+			// std::cout << "leaving kCyclicCrouch" << std::endl;
+			break;}
 		case ActionMode::kJump: {
 			break;}
 		default: {

@@ -25,6 +25,12 @@ def main() :
     parser.add_argument("--kinematics",\
         help="do forward kinematics",
         action='store_true')
+    parser.add_argument("--crouch",\
+        help="do forward kinematics",
+        type=float)
+    parser.add_argument("--delay",\
+        help="do forward kinematics",
+        type=float)
     parser.add_argument("-o", "--outlier",\
         help="outlier rejection: ignore rows in the csv for which brake torque data are in the <arg> extremes of the data: -o 0.05 will drop the top and bottom 5%.",
         type=float)
@@ -41,6 +47,17 @@ def main() :
     kin = Kinematics(l3_pll_in=18, l3_perp_in=135)
 
     num_rows = len(data.index)
+    num_cols = data.shape[1]
+    headers = data.columns.values
+
+    time = data[headers[0]]
+    dt = np.abs(np.array(time[1:-1]) - np.array(time[0:-2]))
+    Ts = np.abs(np.median(dt))
+
+    fs = 1/Ts
+    cutoff = 0.02*fs
+    order = 6
+    b, a = butter_lowpass(cutoff, fs, order)
 
     if args.kinematics :
         cmd_fk = kin.fk_vec(data["a1 position cmd [rad]"].astype(float), data["a2 position cmd [rad]"].astype(float))
@@ -68,6 +85,26 @@ def main() :
         
         ax.plot(np.linspace(0, (cc*200), num_rows), 1000*data["res z [m]"])
         ax.set_aspect(1)
+        plt.show()
+
+    if args.crouch is not None :
+        femur_trq = data["a1 torque [Nm]"][time > args.delay].astype(float)
+        tibia_trq = data["a2 torque [Nm]"][time > args.delay].astype(float)
+
+        femur_trq_filt = butter_lowpass_filter(femur_trq, cutoff, fs, order)
+        tibia_trq_filt = butter_lowpass_filter(tibia_trq, cutoff, fs, order)
+
+        time_periodic = time[time > args.delay] % (1/args.crouch)
+
+        fig = plt.figure()
+        ax = fig.gca()
+        ax.plot(time_periodic, femur_trq, label="femur_trq")
+        ax.plot(time_periodic, tibia_trq, label="tibia_trq")
+        ax.plot(time_periodic, femur_trq_filt, label="femur_trq_filt")
+        ax.plot(time_periodic, tibia_trq_filt, label="tibia_trq_filt")
+        plt.legend()
+        plt.xlabel("time [s]")
+        plt.ylabel("torque [Nm]")
         plt.show()
 
     # if args.outlier is not None:
@@ -98,11 +135,6 @@ def main() :
         # data['efficiency from setpoint []'] = data['brake torque [Nm]'] / (gear_ratio * data['motor torque setpoint [Nm]'])
     
     if args.interactive:
-        num_cols = data.shape[1]
-        headers = data.columns.values
-        time = data[headers[0]]
-        dt = np.abs(np.array(time[1:-1]) - np.array(time[0:-2]))
-        Ts = np.abs(np.median(dt))
         print("Ts mean= {}, Ts median = {}, fs = {}, sigma = {}, outlier fraction = {}".format(\
             round(np.mean(dt), 5), round(Ts, 5), round(1/Ts, 2), round(np.std(dt), 5), sum(dt > 1.3*Ts)/len(dt)))
         print('the following data series are available:')
@@ -114,11 +146,6 @@ def main() :
         # # ax.hist(dt, bins = 1000)
         # plt.plot(dt)
         # plt.show()
-
-        fs = 1/Ts
-        cutoff = 0.02*fs
-        order = 6
-        b, a = butter_lowpass(cutoff, fs, order)
 
         # import ipdb; ipdb.set_trace()
         # print(Ts)
