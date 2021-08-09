@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
@@ -28,6 +29,9 @@ def main() :
     parser.add_argument("--crouch",\
         help="do forward kinematics",
         type=float)
+    parser.add_argument("--extract-torques",\
+        help="write time, a1 torque, and a2 torque data to csv specified by this argument",
+        type=str)
     parser.add_argument("--delay",\
         help="do forward kinematics",
         type=float)
@@ -58,6 +62,17 @@ def main() :
     cutoff = 0.02*fs
     order = 6
     b, a = butter_lowpass(cutoff, fs, order)
+
+    if args.extract_torques is not None :
+        a1_trq = data["a1 torque [Nm]"].astype(float).fillna(method="pad").fillna(method="bfill")
+        a2_trq = data["a2 torque [Nm]"].astype(float).fillna(method="pad").fillna(method="bfill")
+        with open(args.extract_torques, "w+") as my_csv:
+            csvwriter = csv.writer(my_csv, delimiter=',')
+            csvwriter.writerow(["# " +args.filename])
+            csvwriter.writerow(["time [s]", "a1 torque [Nm]", "a2 torque [Nm]"])
+            output_data = np.transpose(np.array([time, a1_trq, a2_trq]))
+            for row in output_data :
+                csvwriter.writerow(['{:-.6f}'.format(val) for val in row])
 
     if args.kinematics :
         cmd_fk = kin.fk_vec(data["a1 position cmd [rad]"].astype(float), data["a2 position cmd [rad]"].astype(float))

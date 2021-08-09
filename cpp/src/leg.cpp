@@ -51,16 +51,15 @@ void Leg::setup_playback() {
 		rapidcsv::LabelParams(),
 		rapidcsv::SeparatorParams(',',
 															true),
-		rapidcsv::ConverterParams(false,
-															std::numeric_limits<float>::quiet_NaN(),
-															0),
+		rapidcsv::ConverterParams(true, std::numeric_limits<float>::signaling_NaN(), 0),
 		rapidcsv::LineReaderParams(true /* pSkipCommentLines */,
 															'#' /* pCommentPrefix */,
 															true /* pSkipEmptyLines */));
 
 	std::vector<std::string> columnNames = doc.GetColumnNames();
-	for (auto& name : columnNames) std::cout << name << "\n";
+	// for (auto& name : columnNames) std::cout << name << "\n";
 	std::cout << columnNames.size() << " columns\n";
+	std::cout << doc.GetColumnCount() << " columns\n";
   std::vector<float> time = doc.GetColumn<float>("time [s]");
 	std::cout << time.size() << " lines" << std::endl;
 	size_t delay_idx = std::upper_bound (
@@ -68,9 +67,17 @@ void Leg::setup_playback() {
 	
 	// grab columns and erase elements before delay_idx
   femur_trq = doc.GetColumn<float>("a1 torque [Nm]");
+  // femur_trq = doc.GetColumn<float>(6);
+	std::cout << femur_trq.size() << " lines" << std::endl;
 	std::vector<float>(femur_trq.begin()+delay_idx, femur_trq.end()).swap(femur_trq);
   std::cout << "here" << std::endl;
 	tibia_trq = doc.GetColumn<float>("a2 torque [Nm]");
+	// for (size_t ii = 0; ii < femur_trq.size(); ii++) {
+	// 	size_t jj = ii;
+	// 	std::cout << "time: " << doc.GetCell<float>(0, ii) << ", trq (18, " << jj << "): " << doc.GetCell<float>(size_t(18), size_t(jj)) << "\n";
+	// }
+	
+	// tibia_trq = doc.GetColumn<float>(18);
 	std::vector<float>(tibia_trq.begin()+delay_idx, tibia_trq.end()).swap(tibia_trq);
 
 	// pad values for filtering
@@ -93,7 +100,7 @@ void Leg::setup_playback() {
 	data_length = femur_trq.size();
 	std::vector<float> femur_trq_temp; femur_trq_temp.reserve(data_length);
 	std::vector<float> tibia_trq_temp; tibia_trq_temp.reserve(data_length);
-	std::cout << "filtering playback data..." << std::endl;
+	std::cout << "filtering playback data...";;
 
 	for (size_t ii = 0; ii < data_length; ii++) {
 		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq[ii]);
@@ -106,6 +113,8 @@ void Leg::setup_playback() {
 		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq[ii]);
 		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq[ii]);
 	}
+
+	std::cout << " done.\nwriting file...";
 	// testing 
 	std::ofstream data_file("filtering_test.csv");
 	data_file << "femur in, tibia in, femur out, tibia out\n";
@@ -116,6 +125,7 @@ void Leg::setup_playback() {
 			<< femur_trq_temp[ii] << ", "
 			<< tibia_trq_temp[ii] << "\n";
 	data_file.flush();
+	std::cout << " done." << std::endl;
 
 	// cut off padded elements
 	std::vector<float>(
