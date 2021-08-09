@@ -254,6 +254,7 @@ def main() :
                 plt.xlabel(xlabel)
                 plt.legend()
                 plt.title(args.filename)
+                plt.ylim(-10, 10)
             plt.show()
         return
 

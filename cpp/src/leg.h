@@ -223,6 +223,8 @@ private:
 
 	std::vector<float> femur_trq;
 	std::vector<float> tibia_trq;
+	std::vector<float> femur_trq_temp; 
+	std::vector<float> tibia_trq_temp; 
 	size_t playback_idx = 0;
 
 	void setup_playback();

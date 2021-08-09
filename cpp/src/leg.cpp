@@ -64,20 +64,14 @@ void Leg::setup_playback() {
 	std::cout << time.size() << " lines" << std::endl;
 	size_t delay_idx = std::upper_bound (
 		time.begin(), time.end(), legset_.playback_delay) - time.begin();
+	std::vector<float>(time.begin()+delay_idx, time.end()).swap(time);
 	
 	// grab columns and erase elements before delay_idx
   femur_trq = doc.GetColumn<float>("a1 torque [Nm]");
-  // femur_trq = doc.GetColumn<float>(6);
-	std::cout << femur_trq.size() << " lines" << std::endl;
+	std::cout << femur_trq.size() << " femur lines" << std::endl;
 	std::vector<float>(femur_trq.begin()+delay_idx, femur_trq.end()).swap(femur_trq);
-  std::cout << "here" << std::endl;
 	tibia_trq = doc.GetColumn<float>("a2 torque [Nm]");
-	// for (size_t ii = 0; ii < femur_trq.size(); ii++) {
-	// 	size_t jj = ii;
-	// 	std::cout << "time: " << doc.GetCell<float>(0, ii) << ", trq (18, " << jj << "): " << doc.GetCell<float>(size_t(18), size_t(jj)) << "\n";
-	// }
-	
-	// tibia_trq = doc.GetColumn<float>(18);
+	std::cout << tibia_trq.size() << " tibia lines" << std::endl;
 	std::vector<float>(tibia_trq.begin()+delay_idx, tibia_trq.end()).swap(tibia_trq);
 
 	// pad values for filtering
@@ -87,39 +81,47 @@ void Leg::setup_playback() {
 		femur_trq.insert(femur_trq.begin(), femur_trq.front());
 		tibia_trq.push_back(tibia_trq.back());
 		tibia_trq.insert(tibia_trq.begin(), tibia_trq.front());
+		time.push_back(time.back());
+		time.insert(time.begin(), time.front());
 	}
 	size_t data_length = femur_trq.size();
 	// take care of nans
 	std::cout << "using " << data_length << " lines, taking care of nans...\n";
-	for (size_t ii = 0; ii < data_length; ii++) {
-		if (std::isnan(femur_trq[ii]))
-			femur_trq[ii] = (ii == 0) ? 0 : femur_trq[ii-1];
-		if (std::isnan(tibia_trq[ii]))
-			tibia_trq[ii] = (ii == 0) ? 0 : tibia_trq[ii-1];
-	}
-	data_length = femur_trq.size();
-	std::vector<float> femur_trq_temp; femur_trq_temp.reserve(data_length);
-	std::vector<float> tibia_trq_temp; tibia_trq_temp.reserve(data_length);
-	std::cout << "filtering playback data...";;
+	// for (size_t ii = 0; ii < data_length; ii++) {
+	// 	if (std::isnan(femur_trq[ii]))
+	// 		femur_trq[ii] = (ii == 0) ? 0 : femur_trq[ii-1];
+	// 	if (std::isnan(tibia_trq[ii]))
+	// 		tibia_trq[ii] = (ii == 0) ? 0 : tibia_trq[ii-1];
+	// }
+	// data_length = femur_trq.size();
+	std::cout << "allocating new vectors... " << std::flush;
+	femur_trq_temp.resize(data_length);
+	tibia_trq_temp.resize(data_length);
+	std::cout << "filtering playback data..." << std::flush;
 
-	for (size_t ii = 0; ii < data_length; ii++) {
+	for (size_t ii = 0; ii < data_length-1; ii++) {
+		// if (!(ii%100)) std::cout << ii << " " << std::flush;
 		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq[ii]);
 		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq[ii]);
 	}
 	lpf_femur_.flush_buffers();
 	lpf_tibia_.flush_buffers();
+	
 	// filter backwards to eliminate phase lag
-	for (size_t ii = data_length-1; ii >= 0; ii--) {
-		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq[ii]);
-		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq[ii]);
+	std::cout << " backward filter on " << data_length << " elements..." << std::flush;
+	for (int ii = data_length-1; ii >= 0; ii--) {
+		// if (!(ii%100)) std::cout << ii << " " << std::flush;
+		femur_trq_temp[ii] = lpf_femur_.iterate_filter(femur_trq_temp[ii]);
+		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq_temp[ii]);
 	}
 
 	std::cout << " done.\nwriting file...";
 	// testing 
 	std::ofstream data_file("filtering_test.csv");
-	data_file << "femur in, tibia in, femur out, tibia out\n";
+	data_file << "time,femur in,tibia in,femur out,tibia out\n";
 	for (size_t ii = 0; ii < femur_trq.size(); ii++)
 		data_file
+			<< time[ii] << ", "
 			<< femur_trq[ii] << ", "
 			<< tibia_trq[ii] << ", "
 			<< femur_trq_temp[ii] << ", "
