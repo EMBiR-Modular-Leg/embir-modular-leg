@@ -51,12 +51,13 @@ LowPassFilter::LowPassFilter(int order, float cutoff_freq, float sampling_period
   lpf_order_(order), lpf_fc_(cutoff_freq), T_s_(sampling_period_s) {
 
   std::cout << "initializing filter with order " << lpf_order_ 
-    << " and cutoff " << lpf_fc_ << "Hz..." << std::endl;
+    << " and cutoff " << lpf_fc_ << "Hz..." << std::flush;
   fib_.resize(lpf_order_+1);
   fob_.resize(lpf_order_+1);
   lpf_dcof_ = dcof_bwlp(lpf_order_, 2*lpf_fc_*T_s_);
   lpf_ccof_ = ccof_bwlp(lpf_order_);
   lpf_sf_ = sf_bwlp(lpf_order_,  2*lpf_fc_*T_s_);
+  std::cout << " done.\n";
   
   return;
 }

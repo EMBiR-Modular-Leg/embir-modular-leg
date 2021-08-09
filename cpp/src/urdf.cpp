@@ -69,7 +69,7 @@ URDF::RobotElement::Origin URDF::RobotElement::get_origin(
 
 URDF::URDF(std::string path) : path_(path) {
 	// https://gist.github.com/JSchaenzle/2726944
-	std::cout << "parsing robot URDF from " << path << std::endl;
+	std::cout << "parsing robot URDF from " << path << "..." << std::flush;
 	xml_node<> * root_node;
 	// Read the xml file into a vector
 	std::ifstream urdf_file (path_);
@@ -101,6 +101,7 @@ URDF::URDF(std::string path) : path_(path) {
 	for (size_t ii = 0; ii < links.size(); ii++)
 		link_dict[links[ii].name] = links[ii];
 
+	std::cout << " done." << std::endl;
 	return;
 }
 

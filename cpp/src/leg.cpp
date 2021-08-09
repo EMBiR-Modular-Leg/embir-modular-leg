@@ -58,24 +58,21 @@ void Leg::setup_playback() {
 
 	std::vector<std::string> columnNames = doc.GetColumnNames();
 	// for (auto& name : columnNames) std::cout << name << "\n";
-	std::cout << columnNames.size() << " columns\n";
-	std::cout << doc.GetColumnCount() << " columns\n";
+	std::cout << doc.GetColumnCount() << " columns, ";
   std::vector<float> time = doc.GetColumn<float>("time [s]");
-	std::cout << time.size() << " lines" << std::endl;
+	std::cout << time.size() << " rows" << std::endl;
 	size_t delay_idx = std::upper_bound (
 		time.begin(), time.end(), legset_.playback_delay) - time.begin();
 	std::vector<float>(time.begin()+delay_idx, time.end()).swap(time);
 	
 	// grab columns and erase elements before delay_idx
   femur_trq = doc.GetColumn<float>("a1 torque [Nm]");
-	std::cout << femur_trq.size() << " femur lines" << std::endl;
 	std::vector<float>(femur_trq.begin()+delay_idx, femur_trq.end()).swap(femur_trq);
 	tibia_trq = doc.GetColumn<float>("a2 torque [Nm]");
-	std::cout << tibia_trq.size() << " tibia lines" << std::endl;
 	std::vector<float>(tibia_trq.begin()+delay_idx, tibia_trq.end()).swap(tibia_trq);
 
 	// pad values for filtering
-	std::cout << "padding values for filtering..." << std::endl;
+	std::cout << "padding values for filtering... " << std::flush;
 	for (size_t ii = 0; ii < legset_.lpf_order; ii++) {
 		femur_trq.push_back(femur_trq.back());
 		femur_trq.insert(femur_trq.begin(), femur_trq.front());
@@ -87,13 +84,13 @@ void Leg::setup_playback() {
 	size_t data_length = femur_trq.size();
 	// take care of nans
 	std::cout << "using " << data_length << " lines, taking care of nans...\n";
-	// for (size_t ii = 0; ii < data_length; ii++) {
-	// 	if (std::isnan(femur_trq[ii]))
-	// 		femur_trq[ii] = (ii == 0) ? 0 : femur_trq[ii-1];
-	// 	if (std::isnan(tibia_trq[ii]))
-	// 		tibia_trq[ii] = (ii == 0) ? 0 : tibia_trq[ii-1];
-	// }
-	// data_length = femur_trq.size();
+	for (size_t ii = 0; ii < data_length; ii++) {
+		if (std::isnan(femur_trq[ii]))
+			femur_trq[ii] = (ii == 0) ? 0 : femur_trq[ii-1];
+		if (std::isnan(tibia_trq[ii]))
+			tibia_trq[ii] = (ii == 0) ? 0 : tibia_trq[ii-1];
+	}
+	data_length = femur_trq.size();
 	std::cout << "allocating new vectors... " << std::flush;
 	femur_trq_temp.resize(data_length);
 	tibia_trq_temp.resize(data_length);
