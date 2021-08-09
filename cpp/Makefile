@@ -66,7 +66,7 @@ $(BUILD_DIR)/,$(obj)))
 $(BIN_DIR)/leg : $(foreach obj,$(LEG_OBJS),$(addprefix \
 $(BUILD_DIR)/,$(obj))) 
 	@echo "$@"
-	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/mjbots/pi3hat \
+	g++ -O3 $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/mjbots/pi3hat \
 	-I src/iir -lbcm_host -lbcm2835 -lpthread
 
 $(BUILD_DIR)/%.o : %.cpp %.h

@@ -60,6 +60,7 @@ void Run(Leg& leg) {
   sigaction(SIGINT, &sigIntHandler, NULL);
 
   // ** CONFIGURE CPU AND MOTEUS INFRASTRUCTURE **
+  std::cout << "configuring realtime and constructing moteus interface... ";
   moteus::ConfigureRealtime(legset.main_cpu);
   MoteusInterface::Options moteus_options;
   moteus_options.cpu = legset.can_cpu;
@@ -68,6 +69,7 @@ void Run(Leg& leg) {
     { legset.act_tibia_id, legset.act_tibia_bus },
   };
   MoteusInterface moteus_interface{moteus_options};
+  std::cout << "done.\n" << std::flush;
 
   // ** CONTAINER FOR COMMANDS **
   std::vector<MoteusInterface::ServoCommand> curr_commands;
@@ -87,9 +89,11 @@ void Run(Leg& leg) {
   std::vector<MoteusInterface::ServoReply> saved_replies{curr_commands.size()};
 
   // ** PACKAGE COMMANDS AND REPLIES IN moteus_data **
+  std::cout << "setting up moteus_data container... ";
   MoteusInterface::Data moteus_data;
   moteus_data.commands = { curr_commands.data(), curr_commands.size() };
   moteus_data.replies = { replies.data(), replies.size() };
+  std::cout << "done.\n" << std::flush;
 
   std::future<MoteusInterface::Output> can_result;
 
@@ -114,6 +118,7 @@ void Run(Leg& leg) {
   leg.log_headers();
 
   // * MAIN LOOP *
+  std::cout << "beginning while loop..." << std::endl;
   while (!interrupted && leg.get_time_prog() < legset.duration_s) {
     cycle_count++; margin_cycles++;
     // Terminal status update
@@ -250,7 +255,7 @@ int main(int argc, char** argv) {
 
   LockMemory();
 
-  auto legset = parse_settings(opts);
+  Leg::LegSettings legset(opts);
   legset.status_period_us = static_cast<int64_t>(
     (1e6)/10);
   data_file << "# \n# user comment: " << opts["comment"]

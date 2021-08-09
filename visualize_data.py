@@ -47,15 +47,18 @@ def main() :
 
     args = parser.parse_args()
     
-    data = pd.read_csv(args.filename, comment='#', header=0)
+    data = pd.read_csv(args.filename, comment='#', header=0, float_precision='high')
     kin = Kinematics(l3_pll_in=18, l3_perp_in=135)
 
     num_rows = len(data.index)
     num_cols = data.shape[1]
     headers = data.columns.values
 
-    time = data[headers[0]]
+    time = data["time [s]"]
+    # import ipdb; ipdb.set_trace()
     dt = np.abs(np.array(time[1:-1]) - np.array(time[0:-2]))
+    for e in np.array(time)[0:20]:
+        print('{:.5f}'.format(e))
     Ts = np.abs(np.median(dt))
 
     fs = 1/Ts
@@ -254,7 +257,7 @@ def main() :
                 plt.xlabel(xlabel)
                 plt.legend()
                 plt.title(args.filename)
-                plt.ylim(-10, 10)
+                # plt.ylim(-10, 10)
             plt.show()
         return
 

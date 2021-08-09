@@ -62,7 +62,7 @@ void MoteusController::restore_cfg(std::string path) {
 	std::string command = "python3 -m moteus.moteus_tool --target " +
 		id_str + " --pi3hat-cfg '" + bus_str + "=" + id_str +
 		"' --write-config " + path;
-	std::cout << "restoring config to id " << id_str << "from " <<
+	std::cout << "restoring config to id " << id_str << " from " <<
 		path << "...\n" << command;
 	system(command.c_str());
 	std::cout << "    done. " << std::endl;

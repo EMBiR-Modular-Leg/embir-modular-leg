@@ -31,22 +31,27 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
 	action_mode_ = legset_.action_mode;
 	if (legset_.playback_file != "") setup_playback();
 
-	act_femur_.zero_offset();
-  act_tibia_.zero_offset();
-	act_femur_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
-	act_tibia_.restore_cfg("/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg");
+	if (!legset_.skip_zero) {
+		act_femur_.zero_offset();
+		act_tibia_.zero_offset();
+	}
+	if (!legset_.skip_cfg_load) {
+		act_femur_.restore_cfg(legset_.cfg_path);
+		act_tibia_.restore_cfg(legset_.cfg_path);
+	}
 	
 	leg_kinematics = LegKinematics(leg_urdf_);
 
-	std::cout << "loading configs... \n";
+	std::cout << "loading configs... ";
   std::ifstream cyclic_crouch_if("configs/cyclic_crouch.json");
   cyclic_crouch_if >> cyclic_crouch_j;
 	cyclic_crouch_s = CyclicCrouchSettings(cyclic_crouch_j);
+	std::cout << "done.\n";
 }
 
 void Leg::setup_playback() {
 	std::cout
-		<< "loading playback file from " << legset_.playback_file << std::endl;
+		<< "\tloading playback file from " << legset_.playback_file << std::endl;
 	rapidcsv::Document doc(legset_.playback_file,
 		rapidcsv::LabelParams(),
 		rapidcsv::SeparatorParams(',',
@@ -58,7 +63,7 @@ void Leg::setup_playback() {
 
 	std::vector<std::string> columnNames = doc.GetColumnNames();
 	// for (auto& name : columnNames) std::cout << name << "\n";
-	std::cout << doc.GetColumnCount() << " columns, ";
+	std::cout << "\t" << doc.GetColumnCount() << " columns, ";
   std::vector<float> time = doc.GetColumn<float>("time [s]");
 	std::cout << time.size() << " rows" << std::endl;
 	size_t delay_idx = std::upper_bound (
@@ -72,7 +77,7 @@ void Leg::setup_playback() {
 	std::vector<float>(tibia_trq.begin()+delay_idx, tibia_trq.end()).swap(tibia_trq);
 
 	// pad values for filtering
-	std::cout << "padding values for filtering... " << std::flush;
+	std::cout << "\tpadding values for filtering... " << std::flush;
 	for (size_t ii = 0; ii < legset_.lpf_order; ii++) {
 		femur_trq.push_back(femur_trq.back());
 		femur_trq.insert(femur_trq.begin(), femur_trq.front());
@@ -91,7 +96,7 @@ void Leg::setup_playback() {
 			tibia_trq[ii] = (ii == 0) ? 0 : tibia_trq[ii-1];
 	}
 	data_length = femur_trq.size();
-	std::cout << "allocating new vectors... " << std::flush;
+	std::cout << "\tallocating new vectors... " << std::flush;
 	femur_trq_temp.resize(data_length);
 	tibia_trq_temp.resize(data_length);
 	std::cout << "filtering playback data..." << std::flush;
@@ -112,10 +117,10 @@ void Leg::setup_playback() {
 		tibia_trq_temp[ii] = lpf_tibia_.iterate_filter(tibia_trq_temp[ii]);
 	}
 
-	std::cout << " done.\nwriting file...";
+	std::cout << " done.\n\twriting file...";
 	// testing 
 	std::ofstream data_file("filtering_test.csv");
-	data_file << "time,femur in,tibia in,femur out,tibia out\n";
+	data_file << "time [s],a1 torque [Nm] in,a2 torque [Nm] in,a1 torque [Nm],a2 torque [Nm]\n";
 	for (size_t ii = 0; ii < femur_trq.size(); ii++)
 		data_file
 			<< time[ii] << ", "
@@ -142,6 +147,7 @@ void Leg::setup_playback() {
 
 void Leg::iterate_fsm() {
 	cycles_++;
+	// std::cout << "in iterate_fsm(), cycle = " << cycles_ << "\n" << std::flush;
 	// immediately respond to fault condition
 	if (leg_fault()) next_state_ = 
 		FSMState::kRecovery;
@@ -160,9 +166,12 @@ void Leg::iterate_fsm() {
 	// else next_state_ = FSMState::kRunning;
 
 	if (time_prog_s_ > legset_.action_delay) next_state_ = FSMState::kRunning;
+	// std::cout << "1 " << std::flush;
 
 	switch (curr_state_) {
 		case FSMState::kIdle: {
+			// std::cout << "2 " << std::flush;
+
 			act_femur_.make_stop();
 			act_tibia_.make_stop();
 			break;}
@@ -203,21 +212,32 @@ void Leg::iterate_fsm() {
 			next_state_ = curr_state_;
 			break;}
 	}
+	// std::cout << "3 " << std::flush;
 	prev_state_ = curr_state_;
 	log_data();
+	// std::cout << "4 " << std::flush;
 	return;
 }
 
 void Leg::log_data() {
 	datastream_ << std::setw(10) << std::setprecision(4) << std::fixed
-		<< time_prog_s_ << ","
-    << act_femur_.stringify_actuator() << ","
-		<< act_femur_.stringify_moteus_reply() << ","
-    << act_tibia_.stringify_actuator() << ","
-    << act_tibia_.stringify_moteus_reply() << ","
-		<< (int)curr_state_ << ","
-		<< femur_trq[playback_idx] <<","
-		<< tibia_trq[playback_idx] <<"\n";
+		<< time_prog_s_ << ",";
+	// std::cout << " 3.1 " << std::flush;
+  datastream_ << act_femur_.stringify_actuator() << ",";
+	// std::cout << " 3.2 " << std::flush;
+	datastream_ << act_femur_.stringify_moteus_reply() << ",";
+	// std::cout << " 3.3 " << std::flush;
+  datastream_ << act_tibia_.stringify_actuator() << ",";
+	// std::cout << " 3.4 " << std::flush;
+  datastream_ << act_tibia_.stringify_moteus_reply() << ",";
+	// std::cout << " 3.5 " << std::flush;
+	datastream_ << (int)curr_state_;
+	
+	if (legset_.action_mode == Leg::ActionMode::kTorquePlayback)
+		datastream_ << "," << femur_trq[playback_idx] <<","
+		<< tibia_trq[playback_idx];
+		
+	datastream_ << "\n";
 	
 	return;
 }
@@ -228,7 +248,11 @@ void Leg::log_headers() {
 		<< act_femur_.stringify_moteus_reply_header() << ","
     << act_tibia_.stringify_actuator_header() << ","
     << act_tibia_.stringify_moteus_reply_header() << ","
-		<< "leg fsm state, femur playback torque [Nm], tibia playback torque [Nm]\n";
+		<< "leg fsm state";
+	if (legset_.action_mode == ActionMode::kCyclicCrouch)
+		datastream_ << 	",femur playback torque [Nm],tibia playback torque [Nm]";
+	
+	datastream_ << "\n";
 	
 	return;
 }
@@ -264,14 +288,14 @@ cxxopts::Options leg_opts() {
 			cxxopts::value<std::string>())
     ("p,path", "path to output csv.",
 			cxxopts::value<std::string>()->default_value(
-				"/home/pi/embir-modular-leg/dynamometer-data/"))
+				"/home/pi/embir-modular-leg/leg-data/"))
     ("playback-file", "path to csv of torque, velocity data to replay.", 
 			cxxopts::value<std::string>()->default_value(""))
 		("playback-delay", "jump into playback file after <delay> seconds", 
 			cxxopts::value<float>()->default_value("1.0"))
-    ("replay-vel-scale", "scale velocity from replay data", 
+    ("playback-vel-scale", "scale velocity from playback data", 
 			cxxopts::value<float>()->default_value("1.0"))
-    ("replay-trq-scale", "scale torque from replay data",
+    ("playback-trq-scale", "scale torque from playback data",
 			cxxopts::value<float>()->default_value("1.0"))
 		("lowpass-order", "butterworth lowpass filter order",
 			cxxopts::value<int>()->default_value("5"))
@@ -295,6 +319,11 @@ cxxopts::Options leg_opts() {
     ("frequency", "test sampling and command frequency in Hz", 
 			cxxopts::value<float>()->default_value("250"))
     ("skip-cal", "skip recalibration")
+    ("skip-zero", "skip setting actuator zero")
+    ("skip-cfg-load", "skip loading actuator config")
+		("config-path", "path to output csv.",
+			cxxopts::value<std::string>()->default_value(
+				"/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg"))
     ("action-mode", "choose between [none|cyclic-crouch|torque-playback]",
 			cxxopts::value<std::string>()->default_value("none"))
 		("action-delay", "delay start of action", 
@@ -306,29 +335,28 @@ cxxopts::Options leg_opts() {
   return options;
 }
 
-Leg::LegSettings parse_settings(cxxopts::ParseResult& leg_opts) {
-  Leg::LegSettings legset;
-  legset.leg_opts = leg_opts;
-  legset.period_s = 1.0/leg_opts["frequency"].as<float>();
-  legset.duration_s = leg_opts["duration"].as<float>();
-  legset.gear_femur = leg_opts["gear-femur"].as<float>();
-  legset.gear_tibia = leg_opts["gear-tibia"].as<float>();
-  legset.act_femur_id = leg_opts["act-femur-id"].as<uint8_t>();
-  legset.act_tibia_id = leg_opts["act-tibia-id"].as<uint8_t>();
-  legset.act_femur_bus = leg_opts["act-femur-bus"].as<uint8_t>();
-  legset.act_tibia_bus = leg_opts["act-tibia-bus"].as<uint8_t>();
+Leg::LegSettings::LegSettings(cxxopts::ParseResult& leg_opts_in) {
+  leg_opts = leg_opts_in;
+  period_s = 1.0/leg_opts["frequency"].as<float>();
+  duration_s = leg_opts["duration"].as<float>();
+  gear_femur = leg_opts["gear-femur"].as<float>();
+  gear_tibia = leg_opts["gear-tibia"].as<float>();
+  act_femur_id = leg_opts["act-femur-id"].as<uint8_t>();
+  act_tibia_id = leg_opts["act-tibia-id"].as<uint8_t>();
+  act_femur_bus = leg_opts["act-femur-bus"].as<uint8_t>();
+  act_tibia_bus = leg_opts["act-tibia-bus"].as<uint8_t>();
 
-  legset.main_cpu = leg_opts["main-cpu"].as<uint8_t>();
-  legset.can_cpu = leg_opts["can-cpu"].as<uint8_t>();
+  main_cpu = leg_opts["main-cpu"].as<uint8_t>();
+  can_cpu = leg_opts["can-cpu"].as<uint8_t>();
 
-  legset.replay_vel_scale = leg_opts["replay-vel-scale"].as<float>();
-  legset.replay_trq_scale = leg_opts["replay-trq-scale"].as<float>();
+  playback_vel_scale = leg_opts["playback-vel-scale"].as<float>();
+  playback_trq_scale = leg_opts["playback-trq-scale"].as<float>();
 
-  legset.lpf_order = leg_opts["lowpass-order"].as<int>();
-  legset.lpf_cutoff_freq_Hz = leg_opts["lowpass-cutoff-frequency"].as<float>();
+  lpf_order = leg_opts["lowpass-order"].as<int>();
+  lpf_cutoff_freq_Hz = leg_opts["lowpass-cutoff-frequency"].as<float>();
 
-  legset.playback_file = leg_opts["playback-file"].as<std::string>();
-  legset.playback_delay = leg_opts["playback-delay"].as<float>();
+  playback_file = leg_opts["playback-file"].as<std::string>();
+  playback_delay = leg_opts["playback-delay"].as<float>();
 
 	auto test_str = leg_opts["action-mode"].as<std::string>();
   // case invariance -- convert to user input to lowercase
@@ -336,18 +364,21 @@ Leg::LegSettings parse_settings(cxxopts::ParseResult& leg_opts) {
     [](unsigned char c){ return std::tolower(c); });
 
   // std::cout << test_str << (test_str == std::string("TV-sweep")) << std::endl;
-  if (test_str == std::string("none")) legset.action_mode = Leg::ActionMode::kNone;
-  else if (test_str == std::string("cyclic-crouch")) legset.action_mode = Leg::ActionMode::kCyclicCrouch;
-  else if (test_str == std::string("torque-playback")) legset.action_mode = Leg::ActionMode::kTorquePlayback;
+  if (test_str == std::string("none")) action_mode = Leg::ActionMode::kNone;
+  else if (test_str == std::string("cyclic-crouch")) action_mode = Leg::ActionMode::kCyclicCrouch;
+  else if (test_str == std::string("torque-playback")) action_mode = Leg::ActionMode::kTorquePlayback;
   else {
-    legset.action_mode = Leg::ActionMode::kNone;
+    action_mode = Leg::ActionMode::kNone;
     std::cout << "no test mode selected (input was \"" << test_str << "\")." << std::endl;
   }
   std::cout << "test mode \"" << test_str << "\" selected" << std::endl;
 
-  legset.action_delay = leg_opts["action-delay"].as<float>();
+  action_delay = leg_opts["action-delay"].as<float>();
 
-  return legset;
+	skip_cal = leg_opts["skip-cal"].as<bool>();
+	skip_zero = leg_opts["skip-zero"].as<bool>();
+	skip_cfg_load = leg_opts["skip-cfg-load"].as<bool>();
+	cfg_path = leg_opts["config-path"].as<std::string>();
 }
 
 void Leg::run_action() {
@@ -385,26 +416,12 @@ void Leg::run_action() {
 			// std::cout << "leaving kCyclicCrouch" << std::endl;
 			break;}
 		case ActionMode::kTorquePlayback: {
-			// std::cout << "in kCyclicCrouch" << std::endl;
-			float z = cyclic_crouch_s.amplitude_m
-				*std::sin(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_) 
-				+ cyclic_crouch_s.center_m;
-			LegKinematics::Position foot_pos = {0,z};
-			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
+			act_femur_.make_act_torque(
+				femur_trq[playback_idx]*legset_.playback_trq_scale);
+			act_tibia_.make_act_torque(
+				tibia_trq[playback_idx]*legset_.playback_trq_scale);
+			playback_idx++;
 
-			float dzdt = cyclic_crouch_s.amplitude_m
-				*2*PI*cyclic_crouch_s.frequency_Hz
-				*std::cos(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_);
-
-			LegKinematics::Position foot_vel = {0,dzdt};
-			auto joint_vels = leg_kinematics.task2joint(foot_vel, joint_angles); 
-
-			act_femur_.make_act_full_pos(
-				joint_angles.femur_angle_rad, joint_vels.femur_angle_rad, 0);
-			act_tibia_.make_act_full_pos(
-				joint_angles.tibia_angle_rad, joint_vels.tibia_angle_rad, 0);
-
-			// std::cout << "leaving kCyclicCrouch" << std::endl;
 			break;}
 		case ActionMode::kJump: {
 			break;}

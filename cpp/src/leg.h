@@ -34,6 +34,9 @@ public:
 	};
 
 	struct LegSettings {
+
+		LegSettings(cxxopts::ParseResult& leg_opts_in);
+
 		float period_s;
 		float duration_s;
 		float gear_femur;
@@ -51,8 +54,8 @@ public:
 
 		uint32_t status_period_us;
 
-		float replay_vel_scale;
-		float replay_trq_scale;
+		float playback_vel_scale;
+		float playback_trq_scale;
 
 		int lpf_order;
 		float lpf_cutoff_freq_Hz;
@@ -62,6 +65,12 @@ public:
 
 		std::string playback_file;
 		float playback_delay;
+
+		bool skip_cal = false;
+		bool skip_zero = false;
+		bool skip_cfg_load = false;
+		std::string cfg_path = "/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg";
+
 	};
 
 	struct CyclicCrouchSettings {
