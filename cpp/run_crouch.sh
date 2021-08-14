@@ -1,0 +1,1 @@
+sudo chrt 99 ./bin/leg -c "cycle crouch" --frequency 1000 --duration 13 --gear-femur=6 --gear-tibia=6 --act-tibia-bus 4 --act-femur-bus 4 --path "/media/pi/Samsung_T5/cpp_api_demo_data/" --action-mode "cyclic-crouch" --action-delay 3
