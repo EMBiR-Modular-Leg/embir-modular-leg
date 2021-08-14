@@ -18,34 +18,34 @@ v2 = ds.a2_v(v_ampl_mask);
 figure; plot((v1+v2)./v1);
 
 %%
+addpath("\\engin-storage.m.storage.umich.edu\engin-storage\ursk\windat.v2\Documents\dynamometer-data");
 plain_barrel = "dynamometer-data\dynamometer_test_15_07_2021_12-24-52.csv";
-[time_plain, temp_plain, tpeak_plain, ~] = thermal_step(plain_barrel, 1, 59);
+% [time_plain, temp_plain, tpeak_plain, ~] = thermal_step(plain_barrel, 1, 59);
+plain_peaks = thermal_step(plain_barrel, 59);
 
 slots_barrel = "dynamometer-data\dynamometer_test_15_07_2021_12-52-33.csv";
-[time_slots, temp_slots, tpeak_slots, ~] = thermal_step(slots_barrel, 1, 59);
+slots_peaks = thermal_step(slots_barrel, 59);
 
 htsnk_barrel = "dynamometer-data\dynamometer_test_15_07_2021_14-47-08.csv";
-[time_htsnk1, temp_htsnk1, tpeak_htsnk1, ~] = thermal_step(htsnk_barrel, 1, 59);
-[time_htsnk2, temp_htsnk2, tpeak_htsnk2, ~] = thermal_step(htsnk_barrel, 2, 59);
+htsnk_peaks = thermal_step(htsnk_barrel, 59);
 
 minifan_barrel = "dynamometer-data\dynamometer_test_20_07_2021_17-20-05.csv";
-[time_minifan1, temp_minifan1, tpeak_minifan1, ~] = thermal_step(minifan_barrel, 1, 59);
-[time_minifan2, temp_minifan2, tpeak_minifan2, ~] = thermal_step(minifan_barrel, 2, 59);
-[time_minifan3, temp_minifan3, tpeak_minifan3, ~] = thermal_step(minifan_barrel, 3, 59);
+minifan_peaks = thermal_step(minifan_barrel, 59);
 
 minifanb_barrel = "dynamometer-data\dynamometer_test_21_07_2021_10-34-24.csv";
-[time_minifanb1, temp_minifanb1, tpeak_minifanb1, ~] = thermal_step(minifanb_barrel, 1, 59);
-[time_minifanb2, temp_minifanb2, tpeak_minifanb2, ~] = thermal_step(minifanb_barrel, 2, 59);
-[time_minifanb3, temp_minifanb3, tpeak_minifanb3, ~] = thermal_step(minifanb_barrel, 3, 59);
+minifanb_peaks = thermal_step(minifanb_barrel, 59);
 
 dblfan_barrel = "dynamometer-data\dynamometer_test_21_07_2021_11-11-17.csv";
-[time_dblfan1, temp_dblfan1, tpeak_dblfan1, ~] = thermal_step(dblfan_barrel, 1, 59);
-[time_dblfan2, temp_dblfan2, tpeak_dblfan2, ~] = thermal_step(dblfan_barrel, 2, 59);
-[time_dblfan3, temp_dblfan3, tpeak_dblfan3, ~] = thermal_step(dblfan_barrel, 3, 59);
+dblfan_peaks = thermal_step(dblfan_barrel, 59);
 
-latest_peak = max([tpeak_plain, tpeak_slots, tpeak_htsnk1, tpeak_htsnk2,...
-    tpeak_minifan1, tpeak_minifan2, tpeak_minifan3,...
-    tpeak_minifanb1, tpeak_minifanb2, tpeak_minifanb3]);
+dblfanb_barrel = "dynamometer-data\dynamometer_test_29_07_2021_00-28-56.csv";
+dblfanb_peaks = thermal_step(dblfanb_barrel, 59);
+
+dblfanc_barrel = "dynamometer-data\dynamometer_test_29_07_2021_00-42-02.csv";
+dblfanc_peaks = thermal_step(dblfanc_barrel, 59);
+
+dblfand_fanoff_barrel = "dynamometer-data\dynamometer_test_29_07_2021_08-30-40.csv";
+dblfand_fanoff_peaks = thermal_step(dblfand_fanoff_barrel, 59);
 
 %%
 set(0, 'DefaultTextInterpreter', 'latex');
@@ -54,25 +54,18 @@ set(0, 'DefaultAxesTickLabelInterpreter', 'latex');
 
 figure;
 hold on;
-% plot(time_plain, temp_plain,'r','DisplayName',"plain");
-plot(time_slots, temp_slots,'c', 'LineWidth',2,'DisplayName',"slots");
-% plot(time_htsnk1, temp_htsnk1,'b', 'LineWidth',2,'DisplayName',"hs1");
-plot(time_htsnk2, temp_htsnk2,'b', 'LineWidth',2,'DisplayName',"hs2");
 
-% plot(time_minifan1, temp_minifan1,'m--','LineWidth',2,'DisplayName',"mf1");
-plot(time_minifan2, temp_minifan2,'m--','LineWidth',2,'DisplayName',"mf2");
-plot(time_minifan3, temp_minifan3,'m--','LineWidth',2,'DisplayName',"mf3");
+plot_peak_data(htsnk_peaks, 'k:', "htsnk")
+plot_peak_data(dblfan_peaks, 'b:', "dblfan tape")
 
-% plot(time_minifanb1, temp_minifanb1,'m:','LineWidth',2,'DisplayName',"mfb1");
-plot(time_minifanb2, temp_minifanb2,'m:','LineWidth',2,'DisplayName',"mfb2");
-plot(time_minifanb3, temp_minifanb3,'m:','LineWidth',2,'DisplayName',"mfb3");
+plot_peak_data(dblfanb_peaks, 'r', "dblfanb")
+plot_peak_data(dblfanc_peaks, 'r:', "dblfanc")
 
-% plot(time_dblfan1, temp_dblfan1,'k-.','LineWidth',2,'DisplayName',"df1");
-plot(time_dblfan2, temp_dblfan2,'k-.','LineWidth',2,'DisplayName',"df2");
-plot(time_dblfan3, temp_dblfan3,'k-.','LineWidth',2,'DisplayName',"df3");
+plot_peak_data(dblfand_fanoff_peaks, 'm:', "dblfand fans off")
+
 xlabel("time [s]");
 ylabel("motor temp [$^O$C]");
-xlim([-75, 150]);
+xlim([-300, 150]);
 title("torque step input thermal experiment");
 legend();
 hold off;
@@ -193,18 +186,33 @@ function ds = load_durability(datafile)
     ds.dts = table2array(data_table(1:end, dts_idx));  
 end
 
-function [time, temp, tpeak, center_idx] = thermal_step(filename, peak_num, peakheight)
+function peak_data = thermal_step(filename, peakheight)
 
 ds = load_durability(filename);
 time = ds.time;
 temp = ds.m_temp;
 
 [pks, locs] = findpeaks(temp, 'MinPeakHeight',peakheight, 'MinPeakDistance', 3000);
-if peak_num > length(locs)
-    peak_num = length(locs);
+
+peak_data = {};
+for peak_num = 1:length(locs)
+    center_idx = locs(peak_num);
+    tpeak = time(center_idx);
+    time = time-tpeak;
+    temp = smoothdata(temp,'movmean',500);
+    row = {time, temp, tpeak, center_idx};
+    peak_data{peak_num} = row;
 end
-center_idx = locs(peak_num);
-tpeak = time(center_idx);
-time = time-tpeak;
-temp = smoothdata(temp,'movmean',500);
+
+end
+
+function plot_peak_data(peak_data, linspec, label_root)
+
+for ii = 1:length(peak_data)
+    row = peak_data{ii};
+    time = row{1};
+    temp = row{2};
+    plot(time, temp,linspec, 'LineWidth',2,'DisplayName',label_root+ii);
+end
+
 end

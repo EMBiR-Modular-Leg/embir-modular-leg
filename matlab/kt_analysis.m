@@ -1,4 +1,8 @@
 %% KT simple
+set(0, 'DefaultTextInterpreter', 'latex');
+set(0, 'DefaultLegendInterpreter', 'latex');
+set(0, 'DefaultAxesTickLabelInterpreter', 'latex');
+
 datafile = "futek_test_11_05_2021_18-17-23.csv";
 datafile = "futek_test_11_05_2021_19-28-26.csv";
 datafile = "futek_data/futek_test_13_05_2021_18-10-31.csv";
