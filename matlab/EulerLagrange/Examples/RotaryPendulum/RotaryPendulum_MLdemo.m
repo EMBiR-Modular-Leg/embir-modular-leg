@@ -7,21 +7,25 @@
 %                world.
 %
 % Copyright 2015-2016 The MathWorks, Inc.
-
+clc;
 % Solve DE numerically using ode45
 % Set simulation time and initial state vector
 tspan = [0 10];
 X0    = [0 0 10 0]*pi/180;
 % Set parameter values
-I     = 1;
-m     = 1;
-l     = 1;
-R     = 1;
-g     = 9.81;
-tau   = 0;    % No external input torque
+I     = double(1);
+m     = double(1);
+l     = double(1);
+R     = double(1);
+g     = double(9.81);
+tau   = double(0);    % No external input torque
 
 % Use created .m file to solve DE
-[t, X]  = ode45(@RotaryPendulum_ODE,tspan,X0,[],tau,I,m,l,R,g);
+% fcn = @(t, Y) RotaryPendulem_ODE(t, Y, tau, I, m, l, R, g);
+% [t, X]  = ode45(@RotaryPendulum_ODE,tspan,X0,[],tau,I,m,l,R,g);
+[t, X]  = ode45(@(t, X)RotaryPendulum_ODE(t, X, tau,I,m,l,R,g),tspan,X0);
+
+% dYdt = RotaryPendulum_ODE(t,Y,tau,I,m,l,Rl,g)
 
 % Plot state vector
 plot(t,X)
