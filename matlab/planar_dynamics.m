@@ -1,9 +1,9 @@
 % kinematics definitions:
-l1 = 125;
-l2_pll = 25;
-l2_perp = 140;
-l3_pll = 20;
-l3_perp = 135;
+l1 = .125;
+l2_pll = .025;
+l2_perp = .140;
+l3_pll = .020;
+l3_perp = .135;
 
 J_a_r = 1e-4;
 J_a_a = 4e-4;
@@ -31,7 +31,7 @@ r_t = (l2_pll^2 + l2_perp^2)^0.5;
  J_t = 2e-4+J_a_a+J_a_r;
  gamma_t = atan2(l2_pll, l2_perp);
 
-r_p = 0.1;
+r_p = (l3_pll^2 + l3_perp^2)^0.5;
  c_p = 0.03;
  beta_p = 0.75*pi;
  M_p = 0.07;
@@ -76,8 +76,10 @@ phi_p = q_1;
 alpha_t = q_2;
 alpha_f = q_3;
 phi_f = q_1 + gamma_p; % femur-podial parallelism;
-y_p = q_4;
-z_p = q_5;
+% y_p = q_4;
+% z_p = q_5;
+delta_y = q_4;
+delta_z = q_5;
 
 % alpha_f = phi_f - phi_b;
 % alpha_t = phi_t - phi_f;
@@ -86,8 +88,8 @@ phi_t = phi_f + (alpha_t - pi);
 
 % Encode natives into generals -- kinematics
 
-delta_y = y_p - (r_p*cos(phi_p) + c_p*cos(phi_p+beta_p));
-delta_z = z_p - (r_p*sin(phi_p) + c_p*sin(phi_p+beta_p));
+y_p = delta_y + (r_p*cos(phi_p) + c_p*cos(phi_p+beta_p));
+z_p = delta_z + (r_p*sin(phi_p) + c_p*sin(phi_p+beta_p));
 
 y_t = y_p - c_p*cos(phi_p+beta_p) + r_t*cos(phi_t) + c_t*cos(phi_t+beta_t);
 z_t = z_p - c_p*sin(phi_p+beta_p) + r_t*sin(phi_t) + c_t*sin(phi_t+beta_t);
@@ -195,9 +197,10 @@ EL5 = EL5_lhs - EL5_rhs == 0;
 old = {q_4, q_5,...
     q_dot_4, q_dot_5,...
     diff(q_dot_5, t), diff(q_dot_5, t)};
-new = {(r_p*cos(phi_p) + c_p*cos(phi_p+beta_p)), (r_p*sin(phi_p) + c_p*sin(phi_p+beta_p)),...
-    diff(r_p*cos(phi_p) + c_p*cos(phi_p+beta_p), t), diff(r_p*sin(phi_p) + c_p*sin(phi_p+beta_p), t),...
-    diff(diff(r_p*cos(phi_p) + c_p*cos(phi_p+beta_p), t), t), diff(diff(r_p*sin(phi_p) + c_p*sin(phi_p+beta_p), t), t)};
+% new = {(r_p*cos(phi_p) + c_p*cos(phi_p+beta_p)), (r_p*sin(phi_p) + c_p*sin(phi_p+beta_p)),...
+%     diff(r_p*cos(phi_p) + c_p*cos(phi_p+beta_p), t), diff(r_p*sin(phi_p) + c_p*sin(phi_p+beta_p), t),...
+%     diff(diff(r_p*cos(phi_p) + c_p*cos(phi_p+beta_p), t), t), diff(diff(r_p*sin(phi_p) + c_p*sin(phi_p+beta_p), t), t)};
+new = {0, 0, 0, 0, 0, 0};
 
 EL1 = subs(EL1, old, new);
 EL2 = subs(EL2, old, new);
