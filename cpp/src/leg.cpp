@@ -249,7 +249,7 @@ void Leg::log_headers() {
     << act_tibia_.stringify_actuator_header() << ","
     << act_tibia_.stringify_moteus_reply_header() << ","
 		<< "leg fsm state";
-	if (legset_.action_mode == ActionMode::kCyclicCrouch)
+	if (legset_.action_mode == ActionMode::kTorquePlayback)
 		datastream_ << 	",femur playback torque [Nm],tibia playback torque [Nm]";
 	
 	datastream_ << "\n";
@@ -398,7 +398,40 @@ void Leg::run_action() {
 			float z = cyclic_crouch_s.amplitude_m
 				*std::sin(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_) 
 				+ cyclic_crouch_s.center_m;
-			LegKinematics::Position foot_pos = {0,z};
+			LegKinematics::Position desired_foot_pos = {0,z};
+
+			LegKinematics::JointAngles curr_angles
+				= {act_femur_.get_position_rad(), act_tibia_.get_position_rad()};
+			LegKinematics::Position curr_foot_pos
+				= leg_kinematics.fk_2link(curr_angles).back();
+			
+			auto delta_foot_pos = desired_foot_pos - curr_foot_pos;
+			float max_linear_vel = 0.5; // m/s
+			float max_dist = max_linear_vel * legset_.period_s
+				+ (!arrived_at_action_latch) * delta_foot_pos.magnitude() * time_fcn_s_;
+				// spoofing integral winding up effect
+
+			float arrival_tolerance_m = 0.01;
+			if (!arrived_at_action_latch) {
+				if (delta_foot_pos.magnitude() < arrival_tolerance_m) {
+					arrived_at_action_latch = true;
+					std::cout << "\narrived at action location\n";
+				}
+				else
+					delta_foot_pos = delta_foot_pos.magnitude() > max_dist ?
+						max_dist*delta_foot_pos/delta_foot_pos.magnitude() : // slow down
+						delta_foot_pos; // original
+			}
+
+			auto foot_pos = curr_foot_pos + delta_foot_pos;
+
+			// std::cout 
+			// 	<< "curr_ang: (" << curr_angles.femur_angle_rad << ", " << curr_angles.tibia_angle_rad << "), "
+			// 	<< "curr: (" << curr_foot_pos.y_m << ", " << curr_foot_pos.z_m << "), "
+			// 	<< "desired: (" << desired_foot_pos.y_m << ", " << desired_foot_pos.z_m << "), "
+			// 	<< "delta: (" << delta_foot_pos.y_m << ", " << delta_foot_pos.z_m << "), "
+			// 	<< "cmd: (" << foot_pos.y_m << ", " << foot_pos.z_m << ")\n";
+
 			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
 
 			float dzdt = cyclic_crouch_s.amplitude_m
@@ -406,6 +439,7 @@ void Leg::run_action() {
 				*std::cos(2*PI*cyclic_crouch_s.frequency_Hz*time_fcn_s_);
 
 			LegKinematics::Position foot_vel = {0,dzdt};
+			// auto foot_vel = (foot_pos - curr_foot_pos)/legset_.period_s;
 			auto joint_vels = leg_kinematics.task2joint(foot_vel, joint_angles); 
 
 			act_femur_.make_act_full_pos(

@@ -114,7 +114,24 @@ public:
 				return {lhs.y_m + rhs.y_m,
 								lhs.z_m + rhs.z_m};
 			}
+			friend Position operator-(Position lhs, const Position& rhs) {
+				return {lhs.y_m - rhs.y_m,
+								lhs.z_m - rhs.z_m};
+			}
+			friend Position operator*(float lhs, const Position& rhs) {
+				return {lhs*rhs.y_m,
+								lhs*rhs.z_m};
+			}
+			friend Position operator*(const Position& lhs, float rhs) {
+				return {rhs*lhs.y_m,
+								rhs*lhs.z_m};
+			}
+			friend Position operator/(const Position& lhs, float rhs) {
+				return {lhs.y_m/rhs,
+								lhs.z_m/rhs};
+			}
 			Position operator-() {return {-y_m, -z_m};}
+			float magnitude() {return std::sqrt(y_m*y_m + z_m*z_m);}
 		};
 		struct Jacobian {
 			float J11, J12, J21, J22;
@@ -235,6 +252,8 @@ private:
 	std::vector<float> femur_trq_temp; 
 	std::vector<float> tibia_trq_temp; 
 	size_t playback_idx = 0;
+
+	bool arrived_at_action_latch = false;
 
 	void setup_playback();
 

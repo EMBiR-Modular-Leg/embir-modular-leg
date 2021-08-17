@@ -33,6 +33,8 @@ public:
 			kp_, kd_);
 	}
 
+	inline float get_position_rad() {return prev_reply_.result.position * 2 * PI;}
+
 	std::string stringify_actuator();
 	std::string stringify_actuator_header();
 private:

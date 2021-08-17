@@ -51,14 +51,12 @@ def main() :
     kin = Kinematics(l3_pll_in=18, l3_perp_in=135)
 
     num_rows = len(data.index)
-    num_cols = data.shape[1]
-    headers = data.columns.values
 
     time = data["time [s]"]
     # import ipdb; ipdb.set_trace()
     dt = np.abs(np.array(time[1:-1]) - np.array(time[0:-2]))
-    for e in np.array(time)[0:20]:
-        print('{:.5f}'.format(e))
+    # for e in np.array(time)[0:20]:
+    #     print('{:.5f}'.format(e))
     Ts = np.abs(np.median(dt))
 
     fs = 1/Ts
@@ -97,11 +95,11 @@ def main() :
         cc = 0
         for jj in range(20,num_rows, num_rows // 12) :
             y_pts = res_fk[:,0,jj] + cc*200
-            z_pts = res_fk[:,1,jj]
+            z_pts = res_fk[:,1,jj] - res_fk[-1,1,jj]
             ax.plot(y_pts, z_pts, 'o-',color=colors[jj])
             cc += 1
         
-        ax.plot(np.linspace(0, (cc*200), num_rows), 1000*data["res z [m]"])
+        ax.plot(np.linspace(0, (cc*200), num_rows), -1000*data["res z [m]"])
         ax.set_aspect(1)
         plt.show()
 
@@ -151,6 +149,8 @@ def main() :
     # if args.filename[0:5] == "speed":
         # data['efficiency from measurement []'] = data['brake torque [Nm]'] / (gear_ratio * data['motor torque measured [Nm]'])
         # data['efficiency from setpoint []'] = data['brake torque [Nm]'] / (gear_ratio * data['motor torque setpoint [Nm]'])
+    num_cols = data.shape[1]
+    headers = data.columns.values
     
     if args.interactive:
         print("Ts mean= {}, Ts median = {}, fs = {}, sigma = {}, outlier fraction = {}".format(\
