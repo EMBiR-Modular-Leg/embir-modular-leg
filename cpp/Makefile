@@ -1,45 +1,73 @@
 # VPATH = src/adafruit/ src/main/ build/
-vpath %.h src src/mjbots/moteus src/mjbots/pi3hat
-vpath %.cpp src src/mjbots/moteus src/mjbots/pi3hat
-vpath %.cc src src/mjbots/moteus src/mjbots/pi3hat
-vpath %.o build
+VPATH = src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir\
+	src/nlohmann src/sensors src/rapidcsv src/rapidxml
+# vpath %.h src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir src/nlohmann
+# vpath %.hpp src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir src/nlohmann
+# vpath %.cpp src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir
+# vpath %.cc src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir
+# vpath %.c src src/mjbots/moteus src/mjbots/pi3hat src/libFilter src/iir
+# vpath %.o build
 # VPATH = ./src/adafruit ./src/main ./build
 
 
 SRC_DIR := ./src
 BUILD_DIR := ./build
 BIN_DIR := ./bin
-COMMON_OBJS := pi3hat.o Adafruit_ADS1X15.o Adafruit_INA260.o I2CDevice.o
+COMMON_OBJS := Adafruit_ADS1X15.o Adafruit_INA260.o I2CDevice.o filters.o \
+	iir.o
 ADS_OBJS := ads_test.o $(COMMON_OBJS)
-PI3T_OBJS := pi3hat_tool.o $(COMMON_OBJS)
-DYNAMOMETER_OBJS := dynamometer.o $(COMMON_OBJS)
-M_CTRL_OBJS := moteus_control_example.o $(COMMON_OBJS)
+PI3T_OBJS := pi3hat_tool.o pi3hat.o $(COMMON_OBJS)
+DYNAMOMETER_OBJS := dynamometer_main.o dynamometer.o pi3hat.o $(COMMON_OBJS)
+M_CTRL_OBJS := moteus_control_example.o pi3hat.o $(COMMON_OBJS)
+CPP_API_DEMO_OBJS := cpp_api_demo.o actuator.o moteus_controller.o pi3hat.o \
+	$(COMMON_OBJS)
+LEG_OBJS := leg_main.o leg.o pi3hat.o actuator.o moteus_controller.o \
+	utils.o urdf.o $(COMMON_OBJS)
 
-BINS := ads_test pi3hat_tool dynamometer
+BINS := ads_test pi3hat_tool dynamometer cpp_api_demo leg
 
 SYS_LIB_DIRS := /opt/vc/
 SYS_INCLUDES := $(foreach lib,$(SYS_LIB_DIRS),$(addsuffix include,$(lib)))
 SYS_OBJS := $(foreach lib,$(SYS_LIB_DIRS),$(addsuffix lib,$(lib)))
 
-CFLAGS := -ggdb -c -pthread -fpermissive -I$(SYS_INCLUDES) -I src
+CFLAGS := -std=c++11 -O3 -c -pthread -fpermissive -Wno-psabi\
+ -I$(SYS_INCLUDES) -I src
 
 all: $(BIN_DIR)/ads_test $(BIN_DIR)/pi3hat_tool
 
-$(BIN_DIR)/ads_test : $(foreach obj,$(ADS_OBJS),$(addprefix $(BUILD_DIR)/,$(obj)))
+$(BIN_DIR)/ads_test : $(foreach obj,$(ADS_OBJS),$(addprefix $(BUILD_DIR)/,\
+	$(obj)))
 	@echo "$@"
 	g++ -ggdb $^ -o $@ -lbcm2835
 
-$(BIN_DIR)/pi3hat_tool : $(foreach obj,$(PI3T_OBJS),$(addprefix $(BUILD_DIR)/,$(obj))) 
+$(BIN_DIR)/pi3hat_tool : $(foreach obj,$(PI3T_OBJS),$(addprefix $(BUILD_DIR)/,\
+	$(obj))) 
 	@echo "$@"
 	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -lbcm_host 
 
-$(BIN_DIR)/dynamometer : $(foreach obj,$(DYNAMOMETER_OBJS),$(addprefix $(BUILD_DIR)/,$(obj))) 
+$(BIN_DIR)/dynamometer : $(foreach obj,$(DYNAMOMETER_OBJS),$(addprefix \
+	$(BUILD_DIR)/,$(obj))) 
 	@echo "$@"
-	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -lbcm_host -lbcm2835 -lpthread
+	g++ -O3 $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/iir -lbcm_host \
+	-lbcm2835 -lpthread
 
-$(BIN_DIR)/moteus_control_example : $(foreach obj,$(M_CTRL_OBJS),$(addprefix $(BUILD_DIR)/,$(obj))) 
+$(BIN_DIR)/moteus_control_example : $(foreach obj,$(M_CTRL_OBJS),$(addprefix \
+	$(BUILD_DIR)/,$(obj))) 
 	@echo "$@"
-	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -lbcm_host -lbcm2835 -lpthread
+	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -lbcm_host -lbcm2835 \
+	-lpthread
+
+$(BIN_DIR)/cpp_api_demo : $(foreach obj,$(CPP_API_DEMO_OBJS),$(addprefix \
+$(BUILD_DIR)/,$(obj))) 
+	@echo "$@"
+	g++ -ggdb $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/mjbots/pi3hat \
+	-I src/iir -lbcm_host -lbcm2835 -lpthread
+
+$(BIN_DIR)/leg : $(foreach obj,$(LEG_OBJS),$(addprefix \
+$(BUILD_DIR)/,$(obj))) 
+	@echo "$@"
+	g++ -O3 $^ -o $@ -L$(SYS_OBJS) -I src/mjbots/moteus -I src/mjbots/pi3hat \
+	-I src/iir -lbcm_host -lbcm2835 -lpthread
 
 $(BUILD_DIR)/%.o : %.cpp %.h
 	@echo "    $@"
@@ -57,9 +85,21 @@ $(BUILD_DIR)/%.o : %.cc
 	@echo "    $@"
 	g++ $(CFLAGS) $< -o $@
 
+$(BUILD_DIR)/%.o : %.c %.h
+	@echo "    $@"
+	g++ $(CFLAGS) $< -o $@
+
+# $(BUILD_DIR)/iir.o : iir.c iir.h
+# 	@echo "    $@"
+# 	g++ $(CFLAGS) $< -o $@
+
 $(BUILD_DIR)/%.o : %.h
 # @echo "    $@"
 # g++ $(CFLAGS) $< -o $@ 
+
+# $(BUILD_DIR)/filters.o : filters.cpp filters.h filters_defs.h
+# 	@echo "    $@"
+# 	g++ $(CFLAGS) $< -o $@ 
 
 clean:
 	rm -f build/* bin/*

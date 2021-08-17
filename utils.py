@@ -6,9 +6,10 @@ import numpy as np
 from numpy import sin, cos
 from numpy import linalg as LA
 from numpy import linspace
+import pandas as pd
 
 from scipy import stats
-from scipy.signal import butter, lfilter, freqz
+from scipy.signal import butter, lfilter, freqz, filtfilt
 
 import asyncio
 import sys
@@ -52,7 +53,11 @@ def butter_lowpass(cutoff, fs, order=5):
 
 def butter_lowpass_filter(data, cutoff, fs, order=5):
     b, a = butter_lowpass(cutoff, fs, order=order)
-    y = lfilter(b, a, data)
+    # y = lfilter(b, a, data)
+    filled = data.fillna(method="pad")
+    filled = filled.fillna(method="bfill")
+    y = filtfilt(b, a, filled)
+    # import ipdb; ipdb.set_trace()
     return y
 
 class GaussianRandomProcess:

@@ -52,6 +52,14 @@
     "future": "cpp",
     "iomanip": "cpp",
     "mutex": "cpp",
-    "thread": "cpp"
+    "thread": "cpp",
+    "bitset": "cpp",
+    "list": "cpp",
+    "unordered_set": "cpp",
+    "regex": "cpp",
+    "forward_list": "cpp",
+    "valarray": "cpp",
+    "csignal": "cpp",
+    "codecvt": "cpp"
   }
 }

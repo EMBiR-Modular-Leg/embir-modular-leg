@@ -64,7 +64,7 @@ class Kinematics:
         return theta1, theta2
 
     def fk_vec(self, theta1, theta2):
-        p0 = np.array([0,0])
+        p0 = np.zeros((2, len(theta1)))
         p1 = p0 + [self.l1*sin(-theta1), -self.l1*cos(-theta1)]
         p21 = p1 + [self.l2_pll*sin(-theta1-theta2), -self.l2_pll*cos(-theta1-theta2)]
         p22 = p21 + [-self.l2_perp*cos(-theta1-theta2), -self.l2_perp*sin(-theta1-theta2)]
