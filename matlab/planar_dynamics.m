@@ -10,12 +10,12 @@ J_a_a = 4e-4;
 M_a = 0.5;
 
 % Constants
-r_b = 0.0;
- c_b = 0.0; % centered mass
- beta_b = 0;
- M_b = 2*M_a + 0.5; % two actuators + carriage
- J_b = 1e-3;
- gamma_b = 0;
+r_b = 0.0; % m
+ c_b = 0.0; % m centered mass
+ beta_b = 0; % rad
+ M_b = 2*M_a + 0.5; % kg two actuators + carriage
+ J_b = 1e-3; % kg m^2
+ gamma_b = 0; % rad
 
 r_f = l1;
  c_f = 0.05;
@@ -37,6 +37,9 @@ r_p = (l3_pll^2 + l3_perp^2)^0.5;
  M_p = 0.07;
  J_p = 1e-4;
  gamma_p = atan2(l3_pll, l3_perp);
+ 
+B_f = 4.4e-3; % Nm s/rad
+B_t = 4.4e-3;
 
 
 % syms r_b c_b beta_b M_b J_b gamma_b;
@@ -166,7 +169,7 @@ EL2_lhs = diff(dLdq_2_sub, t);
 EL2_rhs = functionalDerivative(L_sub,q_2)...
     + F_y*functionalDerivative(delta_y, q_2)...
     + F_z*functionalDerivative(delta_z, q_2);
-EL2 = EL2_lhs - EL2_rhs == tau_t;
+EL2 = EL2_lhs - EL2_rhs == tau_t - B_t*diff(q_2,t);
 
 dLdq_3 = diff(L, v_q_3);
 dLdq_3_sub = subs(dLdq_3, old, new);
@@ -174,7 +177,7 @@ EL3_lhs = diff(dLdq_3_sub, t);
 EL3_rhs = functionalDerivative(L_sub,q_3)...
     + F_y*functionalDerivative(delta_y, q_3)...
     + F_z*functionalDerivative(delta_z, q_3);
-EL3 = EL3_lhs - EL3_rhs == tau_f;
+EL3 = EL3_lhs - EL3_rhs == tau_f - B_f*diff(q_3,t);
 
 dLdq_4 = diff(L, v_q_4);
 dLdq_4_sub = subs(dLdq_4, old, new);
@@ -270,4 +273,4 @@ matlabFunctionBlock(s_blockName,VF,...
     'vars',       [{'t','Y'}, Q_vars],...
     'outputs',     {'dYdt'});
 save_system (s_fileName)
-close_system(s_fileName)
+% close_system(s_fileName)

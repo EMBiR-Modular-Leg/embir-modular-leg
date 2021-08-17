@@ -3,13 +3,29 @@
 config_data = {};
 grf_data = {};
 
-rhsF_y_sol = simplify(rhs(F_y_sol));
-rhsF_z_sol = simplify(rhs(F_z_sol));
+rhsF_y_sol = vpa(simplify(rhs(F_y_sol)));
+rhsF_z_sol = vpa(simplify(rhs(F_z_sol)));
 
+syms t q_1(t) q_2(t) q_3(t) pq1 pq2 pq3 vq1 vq2 vq3;
+old = {q_1, q_2, q_3, diff(q_1, t), diff(q_2, t), diff(q_3, t)};
+new = {pq1, pq2, pq3, vq1, vq2, vq3};
+
+rhsF_y_sol = subs(rhsF_y_sol, old, new);
+rhsF_z_sol = subs(rhsF_z_sol, old, new);
+
+% rhsF_y_sol = @(pq1, pq2, pq3, vq1, vq2, vq3)rhsF_y_sol;
+% rhsF_z_sol = @(pq1, pq2, pq3, vq1, vq2, vq3)rhsF_z_sol;
+
+rhsF_y_sol = matlabFunction(rhsF_y_sol, 'Vars', [pq1, pq2, pq3, vq1, vq2, vq3]);
+rhsF_z_sol = matlabFunction(rhsF_z_sol, 'Vars', [pq1, pq2, pq3, vq1, vq2, vq3]);
+
+profile on;
 tic;     % start timing
-for id = 1:length(out.tout)
-    [y, z] = kinematics(out.Y_out(id,:));
-    [fy, fz] = grf(out.Y_out(id,:), rhsF_y_sol, rhsF_z_sol);
+
+out = sim_output;
+for id = 1:(length(out.tout))
+    [y, z] = kinematics(out.sim_states_output(id,:));
+    [fy, fz] = grf(out.sim_states_output(id,:), rhsF_y_sol, rhsF_z_sol);
     
     config_data{id} = [y;z];
     grf_data{id} = [fy;fz];
@@ -19,8 +35,8 @@ for id = 1:length(out.tout)
     end
 end
 fprintf('kinematics and grf calculation: %0.2f sec\n', toc);
+profile off;
 
-%%
 figure;
 
 % [y, z] = kinematics(out.Y_out(1,:));
@@ -42,8 +58,12 @@ f_id = 1;
 loops = 1:5:length(out.tout);
 F(length(loops)) = struct('cdata',[],'colormap',[]);
 
-v = VideoWriter('animation.mp4');
-open(v);
+write_video = false;
+
+if write_video
+    v = VideoWriter('animation_friction');
+    open(v);
+end
 
 for ii = loops
     id = ii;
@@ -61,22 +81,174 @@ for ii = loops
     set(ht, 'String', sprintf('Time: %0.2f sec, GRF = %0.2f kN', out.tout(id), norm( grf_data{id}(:,2) )));
     tstep = out.tout(id) - out.tout(old_id);
     drawnow;
-%     pause(1*tstep);
+    pause(10*tstep);
     old_id = id;
     
     frame = getframe(gcf);
-    writeVideo(v, frame);
+    if write_video writeVideo(v, frame); end
     f_id = f_id + 1;
 end
 fprintf('Animation (Smart update): %0.2f sec\n', toc);
-close(v);
+if write_video close(v); end
+
+%% 
+clc;
+simin = Simulink.SimulationInput("leg_simulator");
+t = (0:0.01:2.5)';
+% ic = zeros(length(t),6);
+ic = [2, 0, 1, 0, 2, 0];
+ic = repmat(ic, length(t), 1);
+tau_t = zeros(length(t),1);
+tau_t = -1*ones(length(t),1);
+% tau_f = tau_t;
+tau_f = zeros(length(t),1);
+
+simin = simin.setExternalInput([t, tau_t, tau_f]);
+
+sim_output = sim(simin);
+
+%% Optimize Standing
+clc;
+syms t q_1(t) q_2(t) q_3(t) pq1 pq2 pq3 vq1 vq2 vq3;
+old = {q_1, q_2, q_3, diff(q_1, t), diff(q_2, t), diff(q_3, t)};
+new = {pq1, pq2, pq3, vq1, vq2, vq3};
+
+rhsF_y_sol = subs(rhsF_y_sol, old, new);
+rhsF_z_sol = subs(rhsF_z_sol, old, new);
+
+% rhsF_y_sol = @(pq1, pq2, pq3, vq1, vq2, vq3)rhsF_y_sol;
+% rhsF_z_sol = @(pq1, pq2, pq3, vq1, vq2, vq3)rhsF_z_sol;
+
+rhsF_y_sol = matlabFunction(rhsF_y_sol, 'Vars', [pq1, pq2, pq3, vq1, vq2, vq3]);
+rhsF_z_sol = matlabFunction(rhsF_z_sol, 'Vars', [pq1, pq2, pq3, vq1, vq2, vq3]);
+
+% standing_obj_func([tau_t, tau_f], rhsF_y_sol, rhsF_z_sol)
+
+costfunc = @(tautau) -1*standing_obj_func(tautau, rhsF_y_sol, rhsF_z_sol);
+
+t = (0:0.01:2.5)';
+tau_t = -1*ones(length(t),1); tau_f = zeros(length(t),1);
+tautau0 = [tau_t, tau_f];
+tautau0 = [tau_f, tau_f];
+lb = -6*ones(length(t), 2);
+ub = -1*lb;
+A = []; b  = []; Aeq = []; beq = [];
+
+opts = optimoptions(@fmincon, 'Display','iter', 'PlotFcn', 'optimplotfval');
+% opts = optimoptions(@fminunc, 'Display','iter', 'PlotFcn', 'optimplotfval');
+
+tautau_sol = fmincon(costfunc, tautau0, A, b, Aeq, beq, lb, ub, [], opts);
+% tautau_sol = fminunc(costfunc, tautau0, opts);
+
+
+standing_obj_func(tautau_sol, rhsF_y_sol, rhsF_z_sol)
 
 %%
+write_video = false;
+video_fname = "";
+vis_sol(tautau_sol,  rhsF_y_sol, rhsF_z_sol, write_video, video_fname)
 
 
-open(v);
-writeVideo(v, F);
-close(v);
+function vis_sol(tautau_sol,  rhsF_y_sol, rhsF_z_sol, write_video, video_fname)
+config_data = {};
+grf_data = {};
+
+tau_t = tautau_sol(:,1);
+tau_f = tautau_sol(:,2);
+
+simin = Simulink.SimulationInput("leg_simulator");
+t = (0:0.01:2.5)';
+
+simin = simin.setExternalInput([t, tau_t, tau_f]);
+
+sim_output = sim(simin);
+
+out = sim_output;
+
+tic;
+for id = 1:(length(out.tout))
+    [y, z] = kinematics(out.sim_states_output(id,:));
+    [fy, fz] = grf(out.sim_states_output(id,:), rhsF_y_sol, rhsF_z_sol);
+    
+    config_data{id} = [y;z];
+    grf_data{id} = [fy;fz];
+    
+end
+fprintf('kinematics and grf calculation: %0.2f sec\n', toc);
+profile off;
+
+figure;
+
+% [y, z] = kinematics(out.Y_out(1,:));
+% [fy, fz] = grf(out.Y_out(1,:), F_y_sol, F_z_sol);
+hh1 = plot(config_data{1}(1,:), config_data{1}(2,:), ...
+      '.-', 'MarkerSize', 20, 'LineWidth', 2);
+hold on;
+hh2 = plot(grf_data{1}(1,:), grf_data{1}(2,:), ...
+      'r-', 'MarkerSize', 20, 'LineWidth', 2);
+hold off;
+axis equal
+L = 0.15;
+axis([-2*L 2*L -2*L 2*L]);
+ht = title(sprintf('Time: %0.2f sec, GRF = %0.2f', out.tout(1), 0));
+
+tic;     % start timing
+old_id = 1;
+f_id = 1;
+loops = 1:5:length(out.tout);
+F(length(loops)) = struct('cdata',[],'colormap',[]);
+
+
+if write_video
+    v = VideoWriter(video_fname);
+    open(v);
+end
+
+for ii = loops
+    id = ii;
+    
+    set(hh1(1), 'XData', config_data{id}(1,:)  , 'YData', config_data{id}(2,:));
+    
+    set(hh2(1), 'XData', grf_data{id}(1,:)  , 'YData', grf_data{id}(2,:));
+    
+    set(ht, 'String', sprintf('Time: %0.2f sec, GRF = %0.2f kN', out.tout(id), norm( grf_data{id}(:,2) )));
+    tstep = out.tout(id) - out.tout(old_id);
+    drawnow;
+    pause(tstep);
+    old_id = id;
+    
+    frame = getframe(gcf);
+    if write_video writeVideo(v, frame); end
+    f_id = f_id + 1;
+end
+if write_video close(v); end
+end
+
+function objective = standing_obj_func(tautau, rhsF_y_sol, rhsF_z_sol)
+    tau_t = tautau(:,1);
+    tau_f = tautau(:,2);
+    
+    simin = Simulink.SimulationInput("leg_simulator");
+    t = (0:0.01:2.5)';
+
+    simin = simin.setExternalInput([t, tau_t, tau_f]);
+
+    sim_output = sim(simin);
+
+    out = sim_output;
+    
+    base_z = 0;
+    for id = 1:(length(out.tout))
+        [y, z] = kinematics(out.sim_states_output(id,:));
+        [fy, fz] = grf(out.sim_states_output(id,:), rhsF_y_sol, rhsF_z_sol);
+
+%         config_data{id} = [y;z];
+%         grf_data{id} = [fy;fz];
+        base_z = base_z + z(5);
+    end
+    
+    objective = base_z / length(out.tout);
+end
 
 function [y, z] = kinematics(Y)
 
@@ -148,11 +320,15 @@ function [y, z] = kinematics(Y)
 end
 
 function [fy, fz] = grf(Y, rhsF_y_sol, rhsF_z_sol)
-    syms t q_1(t) q_2(t) q_3(t);
-    old = {q_1, q_2, q_3, diff(q_1, t), diff(q_2, t), diff(q_3, t)};
-    new = {Y(1), Y(3), Y(5), Y(2), Y(4), Y(6)};
-    fy = vpa(subs(rhsF_y_sol, old, new));
-    fz = vpa(subs(rhsF_z_sol, old, new));
+%     syms t q_1(t) q_2(t) q_3(t);
+%     syms pq1 pq2 pq3 vq1 vq2 vq3;
+%     old = {q_1, q_2, q_3, diff(q_1, t), diff(q_2, t), diff(q_3, t)};
+%     old = {pq1, pq2, pq3, vq1, vq2, vq3};
+%     new = {Y(1), Y(3), Y(5), Y(2), Y(4), Y(6)};
+%     fy = vpa(subs(rhsF_y_sol, old, new));
+%     fz = vpa(subs(rhsF_z_sol, old, new));
+    fy = rhsF_y_sol(Y(1), Y(2), Y(3), Y(4), Y(5), Y(6));
+    fz = rhsF_z_sol(Y(1), Y(2), Y(3), Y(4), Y(5), Y(6));
     fy = [0, fy/1000];
     fz = [0, fz/1000];
 end
