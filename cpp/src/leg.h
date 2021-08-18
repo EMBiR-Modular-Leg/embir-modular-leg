@@ -85,6 +85,29 @@ public:
 		}
 	};
 
+	struct JumpSettings {
+		float final_vel_m_s = 0;
+		float initial_ext_m = 0;
+		float final_ext_m = 0;
+
+		float accel_s_m_s2 = 0;
+
+		float time_0 = -1;
+		inline JumpSettings() {}
+		inline JumpSettings(nlohmann::json jump_j) {
+			final_vel_m_s = jump_j["final_vel_m_s"];
+			initial_ext_m = jump_j["initial_ext_m"];
+			final_ext_m = jump_j["final_ext_m"];
+
+			accel_s_m_s2 = 0.5 * (final_vel_m_s*final_vel_m_s) / (final_ext_m - initial_ext_m);
+		
+			std::cout 
+				<< "\n\nfinal_vel_m_s = " << final_vel_m_s << ", "
+				<< "initial_ext_m = " << initial_ext_m << ", "
+				<< "final_ext_m = " << final_ext_m << "\n";
+		}
+	};
+
 	class LegKinematics {
 	public:
 		struct JointAngles {
@@ -243,6 +266,9 @@ private:
 
   nlohmann::json cyclic_crouch_j;
 	CyclicCrouchSettings cyclic_crouch_s;
+
+	nlohmann::json jump_j;
+	JumpSettings jump_s;
 
 	LowPassFilter lpf_femur_;
 	LowPassFilter lpf_tibia_;

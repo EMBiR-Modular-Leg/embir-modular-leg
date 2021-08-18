@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <utility>
 
+#include <cmath>
+
 #include "leg.h"
 #include "color.h"
 #include "rapidcsv/rapidcsv.h"
@@ -46,6 +48,10 @@ Leg::Leg(Leg::LegSettings& legset, std::ostream& datastream, std::string urdf_fi
   std::ifstream cyclic_crouch_if("configs/cyclic_crouch.json");
   cyclic_crouch_if >> cyclic_crouch_j;
 	cyclic_crouch_s = CyclicCrouchSettings(cyclic_crouch_j);
+
+	std::ifstream jump_if("configs/jump.json");
+  jump_if >> jump_j;
+	jump_s = JumpSettings(jump_j);
 	std::cout << "done.\n";
 }
 
@@ -324,7 +330,7 @@ cxxopts::Options leg_opts() {
 		("config-path", "path to output csv.",
 			cxxopts::value<std::string>()->default_value(
 				"/home/pi/embir-modular-leg/moteus-setup/moteus-cfg/a_gen.cfg"))
-    ("action-mode", "choose between [none|cyclic-crouch|torque-playback]",
+    ("action-mode", "choose between [none|cyclic-crouch|torque-playback|jump]",
 			cxxopts::value<std::string>()->default_value("none"))
 		("action-delay", "delay start of action", 
 			cxxopts::value<float>()->default_value("2"))
@@ -367,6 +373,7 @@ Leg::LegSettings::LegSettings(cxxopts::ParseResult& leg_opts_in) {
   if (test_str == std::string("none")) action_mode = Leg::ActionMode::kNone;
   else if (test_str == std::string("cyclic-crouch")) action_mode = Leg::ActionMode::kCyclicCrouch;
   else if (test_str == std::string("torque-playback")) action_mode = Leg::ActionMode::kTorquePlayback;
+  else if (test_str == std::string("jump")) action_mode = Leg::ActionMode::kJump;
   else {
     action_mode = Leg::ActionMode::kNone;
     std::cout << "no test mode selected (input was \"" << test_str << "\")." << std::endl;
@@ -415,7 +422,7 @@ void Leg::run_action() {
 			if (!arrived_at_action_latch) {
 				if (delta_foot_pos.magnitude() < arrival_tolerance_m) {
 					arrived_at_action_latch = true;
-					std::cout << "\narrived at action location\n";
+					std::cout << "\narrived at crouch location\n";
 				}
 				else
 					delta_foot_pos = delta_foot_pos.magnitude() > max_dist ?
@@ -458,6 +465,54 @@ void Leg::run_action() {
 
 			break;}
 		case ActionMode::kJump: {
+			LegKinematics::JointAngles curr_angles
+				= {act_femur_.get_position_rad(), act_tibia_.get_position_rad()};
+			LegKinematics::Position curr_foot_pos
+				= leg_kinematics.fk_2link(curr_angles).back();
+			
+			float t_quad = (jump_s.time_0 >= 0.0f) ?
+				std::max(time_fcn_s_-jump_s.time_0, 0.0f) : 0.0;
+			
+
+			float z = 0.5*jump_s.accel_s_m_s2*t_quad*t_quad + jump_s.initial_ext_m;
+			z = std::max(z, jump_s.final_ext_m);
+			LegKinematics::Position desired_foot_pos = {0,z};
+			
+			auto delta_foot_pos = desired_foot_pos - curr_foot_pos;
+			float max_linear_vel = 0.5; // m/s
+			float max_dist = max_linear_vel * legset_.period_s
+				+ (!arrived_at_action_latch) * delta_foot_pos.magnitude() * time_fcn_s_;
+				// spoofing integral winding up effect
+
+			float arrival_tolerance_m = 0.01;
+			if (!arrived_at_action_latch) {
+				if (delta_foot_pos.magnitude() < arrival_tolerance_m) {
+					arrived_at_action_latch = true;
+					std::cout << "\narrived at jump location\n";
+					jump_s.time_0 = time_fcn_s_ + 1; // 1s delay before starting jump
+				}
+				else
+					delta_foot_pos = delta_foot_pos.magnitude() > max_dist ?
+						max_dist*delta_foot_pos/delta_foot_pos.magnitude() : // slow down
+						delta_foot_pos; // original
+			}
+
+			auto foot_pos = curr_foot_pos + delta_foot_pos;
+
+			auto joint_angles = leg_kinematics.ik_2link(foot_pos);
+
+			float dzdt = z > jump_s.final_ext_m ? jump_s.accel_s_m_s2*t_quad : 0.0f;
+
+			LegKinematics::Position foot_vel = {0,dzdt};
+			// auto foot_vel = (foot_pos - curr_foot_pos)/legset_.period_s;
+			auto joint_vels = leg_kinematics.task2joint(foot_vel, joint_angles); 
+
+			act_femur_.make_act_full_pos(
+				joint_angles.femur_angle_rad, joint_vels.femur_angle_rad, 0);
+			act_tibia_.make_act_full_pos(
+				joint_angles.tibia_angle_rad, joint_vels.tibia_angle_rad, 0);
+
+			// std::cout << "leaving kJump" << std::endl;
 			break;}
 		default: {
 			act_femur_.make_stop();
