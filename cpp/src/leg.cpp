@@ -476,7 +476,7 @@ void Leg::run_action() {
 
 			float z = 0.5*jump_s.accel_s_m_s2*t_quad*t_quad + jump_s.initial_ext_m;
 			z = std::max(z, jump_s.final_ext_m);
-			LegKinematics::Position desired_foot_pos = {0,z};
+			LegKinematics::Position desired_foot_pos = {jump_s.horizontal_offset_m,z};
 			
 			auto delta_foot_pos = desired_foot_pos - curr_foot_pos;
 			float max_linear_vel = 0.5; // m/s

@@ -89,6 +89,7 @@ public:
 		float final_vel_m_s = 0;
 		float initial_ext_m = 0;
 		float final_ext_m = 0;
+		float horizontal_offset_m = 0;
 
 		float accel_s_m_s2 = 0;
 
@@ -98,6 +99,7 @@ public:
 			final_vel_m_s = jump_j["final_vel_m_s"];
 			initial_ext_m = jump_j["initial_ext_m"];
 			final_ext_m = jump_j["final_ext_m"];
+			horizontal_offset_m = jump_j["horizontal_offset_m"];
 
 			accel_s_m_s2 = 0.5 * (final_vel_m_s*final_vel_m_s) / (final_ext_m - initial_ext_m);
 		

@@ -105,8 +105,8 @@ protected:
 
 	errc fault_code_ = errc::kSuccess;
 
-	float pos_lower_bound_rot_ = -1;
-	float pos_upper_bound_rot_ = 1;
+	float pos_lower_bound_rot_ = -0.5;
+	float pos_upper_bound_rot_ = 0.5;
 
 	char cstr_buffer[128];
 };

@@ -1,5 +1,6 @@
 {
   "final_vel_m_s" : -0.6,
-	"initial_ext_m" : -0.27,
-  "final_ext_m" : -0.39
+  "initial_ext_m" : -0.25,
+  "final_ext_m" : -0.38,
+  "horizontal_offset_m" : -0.1
 }
