@@ -124,9 +124,29 @@ rhsF_z_sol = matlabFunction(rhsF_z_sol, 'Vars', [pq1, pq2, pq3, vq1, vq2, vq3]);
 
 % standing_obj_func([tau_t, tau_f], rhsF_y_sol, rhsF_z_sol)
 
-costfunc = @(tautau) -1*standing_obj_func(tautau, rhsF_y_sol, rhsF_z_sol);
+costfunc = @(tautau) -1*standing_obj_func(tautau);
 
-t = (0:0.01:2.5)';
+t = (0:0.001:2.5)';
+
+M = 5; % bezier order
+
+B = zeros(M+1, length(t'));
+for vv = 0:5
+    B(vv+1,:) = nchoosek(M, vv).* (t') .* (1 - t').^(M-vv);
+end
+
+costfunc2 = @(beziers14) -1*param_standing_obj_func(beziers14, B, t);
+
+bezier_t = -[0.5,1,1.5,2]';
+bezier_f = -[0.5,1,1.5,2]';
+% bezier_t = [0, 0, 0, 0]';
+% bezier_f = [0, 0, 0, 0]';
+
+
+costfunc2([bezier_t, bezier_f])
+
+% figure; plot(bezier_to_tau([0.6,1,1.5,2], B));
+
 tau_t = -1*ones(length(t),1); tau_f = zeros(length(t),1);
 tautau0 = [tau_t, tau_f];
 tautau0 = [tau_f, tau_f];
@@ -134,14 +154,19 @@ lb = -6*ones(length(t), 2);
 ub = -1*lb;
 A = []; b  = []; Aeq = []; beq = [];
 
-opts = optimoptions(@fmincon, 'Display','iter', 'PlotFcn', 'optimplotfval');
+opts = optimoptions(@fmincon, 'Display','iter', 'PlotFcn', 'optimplotfval', 'MaxFunctionEvaluations',3e4);
 % opts = optimoptions(@fminunc, 'Display','iter', 'PlotFcn', 'optimplotfval');
 
-tautau_sol = fmincon(costfunc, tautau0, A, b, Aeq, beq, lb, ub, [], opts);
+% tautau_sol = fmincon(costfunc, tautau0, A, b, Aeq, beq, lb, ub, [], opts);
+% tautau_sol = fmincon(costfunc, tautau_sol, A, b, Aeq, beq, lb, ub, [], opts);
 % tautau_sol = fminunc(costfunc, tautau0, opts);
 
+nonlcon = @(beziers14) test_constraints(beziers14, B);
+beziers_sol = fmincon(costfunc2, [bezier_t,bezier_f], A, b, Aeq, beq, [], [], nonlcon, opts);
 
-standing_obj_func(tautau_sol, rhsF_y_sol, rhsF_z_sol)
+
+% standing_obj_func(tautau_sol);
+param_standing_obj_func(beziers_sol, B, t)
 
 %%
 write_video = false;
@@ -224,12 +249,38 @@ end
 if write_video close(v); end
 end
 
-function objective = standing_obj_func(tautau, rhsF_y_sol, rhsF_z_sol)
+function tau = bezier_to_tau(bezier14, B)
+    bezier = [0, bezier14, 0];
+    tau = bezier*B; % 1xM * Mxt = 1xt
+end
+
+function [c, ceq] = test_constraints(beziers14, B)
+    tautau = beziers_to_tautau(beziers14, B);
+    c = (max(abs(tautau))-6); % less than zero when safe;
+    ceq = 0;
+end
+
+function tautau = beziers_to_tautau(beziers14, B)
+    bezier_t = beziers14(:,1)'; % 1xM
+    bezier_f = beziers14(:,2)';
+    
+    tau_t = bezier_to_tau(bezier_t, B);
+    tau_f = bezier_to_tau(bezier_f, B);
+
+    tautau = [tau_t', tau_f'];
+end
+
+function objective = param_standing_obj_func(beziers14, B, t)
+    tautau = beziers_to_tautau(beziers14, B);
+    objective = standing_obj_func(tautau, t);
+end
+
+function objective = standing_obj_func(tautau, t)
     tau_t = tautau(:,1);
     tau_f = tautau(:,2);
     
     simin = Simulink.SimulationInput("leg_simulator");
-    t = (0:0.01:2.5)';
+%     t = (0:0.01:2.5)';
 
     simin = simin.setExternalInput([t, tau_t, tau_f]);
 
@@ -238,16 +289,19 @@ function objective = standing_obj_func(tautau, rhsF_y_sol, rhsF_z_sol)
     out = sim_output;
     
     base_z = 0;
+    [y_old, z_old] = kinematics(out.sim_states_output(1,:));
+    arclength = 0;
     for id = 1:(length(out.tout))
         [y, z] = kinematics(out.sim_states_output(id,:));
-        [fy, fz] = grf(out.sim_states_output(id,:), rhsF_y_sol, rhsF_z_sol);
+%         [fy, fz] = grf(out.sim_states_output(id,:), rhsF_y_sol, rhsF_z_sol);
 
 %         config_data{id} = [y;z];
 %         grf_data{id} = [fy;fz];
         base_z = base_z + z(5);
+        arclength = arclength + norm([y - y_old, z - z_old]);
     end
     
-    objective = base_z / length(out.tout);
+    objective = base_z / length(out.tout) - arclength/out.tout(end);
 end
 
 function [y, z] = kinematics(Y)
